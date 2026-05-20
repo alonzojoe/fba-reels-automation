@@ -4,6 +4,7 @@
 work/
 out/
 debug/
+auditions/
 
 # Python
 __pycache__/
