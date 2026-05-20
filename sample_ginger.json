@@ -1,0 +1,24 @@
+{
+  "hook": {
+    "text": "Your kitchen has a root that fights nausea, soothes sore muscles, and warms you from the inside.",
+    "search_query": "fresh ginger root"
+  },
+  "tips": [
+    {
+      "text": "Ginger tea may help calm an upset stomach and reduce motion sickness. Simmer three thin slices in hot water for ten minutes, then sip slowly.",
+      "search_query": "ginger tea cup"
+    },
+    {
+      "text": "It contains gingerol, a natural compound that supports the body's anti-inflammatory response. Add grated ginger to stir-fries, soups, or salad dressings.",
+      "search_query": "grated ginger cutting board"
+    },
+    {
+      "text": "For sore throats or coughs, mix fresh ginger juice with raw honey and a squeeze of lemon. Take a teaspoon two or three times a day.",
+      "search_query": "honey lemon ginger"
+    }
+  ],
+  "cta": {
+    "text": "Save this for the next time you feel under the weather.",
+    "search_query": "cozy mug hands"
+  }
+}
