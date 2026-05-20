@@ -17,16 +17,17 @@ Naturalness layers applied in order, per section:
 4. **Segment parsing**: each section is split at sentence terminators
    (`.`, `?`, `!`, `...`, `—`). Each segment is sent to Kokoro as its OWN
    call so punctuation drives prosody (questions actually rise, etc.).
-   Variable silence between segments by terminator:
-     - `.`   → 500 ms
-     - `?` / `!` → 600 ms
-     - `...` → 800 ms
+   Variable silence between segments by terminator (Reels-snappy pace):
+     - `.`   → 200 ms
+     - `?` / `!` → 250 ms
+     - `...` → 400 ms
      - `—`   → 200 ms
 
 The locked brand voice is a blend of three Kokoro voices, averaged in
-embedding space: `af_alloy + am_echo + am_fenrir`. Speed defaults to 0.88
-(deliberate narrator pace). Inter-section silences are 600 ms across the
-board so the editorial rhythm has room to breathe.
+embedding space: `af_alloy + am_echo + am_fenrir`. Speed defaults to 0.95
+(snappy confident narrator). Inter-section silences taper from 250 ms
+(hook → tip1) down to 150 ms between tips and back up to 300 ms before
+the CTA, so the rhythm has momentum without sounding rushed.
 """
 from __future__ import annotations
 
@@ -47,20 +48,26 @@ warnings.filterwarnings("ignore")
 # Locked brand voice
 DEFAULT_VOICE_BLEND: list[str] = ["af_alloy", "am_echo", "am_fenrir"]
 DEFAULT_VOICE: str = ",".join(DEFAULT_VOICE_BLEND)
-DEFAULT_SPEED: float = 0.88
+DEFAULT_SPEED: float = 0.95
 
-# Uniform inter-section silence (600 ms after every section boundary).
-INTER_SECTION_SILENCES_S = [0.60, 0.60, 0.60, 0.60]
+# Per-boundary inter-section silences (snappy Reels pace).
+# Index i is the gap AFTER section i — order matches [hook, tip1, tip2, tip3, cta].
+INTER_SECTION_SILENCES_S = [
+    0.25,  # after hook → before tip1
+    0.15,  # after tip1 → before tip2
+    0.15,  # after tip2 → before tip3
+    0.30,  # after tip3 → before CTA
+]
 
 # Pause in seconds AFTER a segment ending in each terminator
 PAUSE_BY_TERMINATOR_S: dict[str, float] = {
-    ".":   0.50,
-    "?":   0.60,
-    "!":   0.60,
-    "...": 0.80,
+    ".":   0.20,
+    "?":   0.25,
+    "!":   0.25,
+    "...": 0.40,
     "—":   0.20,
 }
-DEFAULT_PAUSE_S = 0.50  # if a segment has no terminator (final segment of section)
+DEFAULT_PAUSE_S = 0.20  # if a segment has no terminator
 
 SAMPLE_RATE = 24000
 
