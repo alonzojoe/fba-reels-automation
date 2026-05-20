@@ -2,31 +2,31 @@
 
 Naturalness layers applied in order, per section:
 
-1. **Abbreviation + number expansion** (`5 mg` → `five milligrams`, `Dr.` → `Doctor`,
-   `5` → `five`, etc.) so Kokoro reads them like a human would.
+1. **Bracket stripping**: any `[...]` tags are deleted before parsing.
+   Kokoro v1.0 does NOT support cues like `[soft]`/`[whisper]` (verified —
+   it pronounces them as words). If a script contains them anyway, they're
+   silently removed so the literal bracketed text never reaches Kokoro.
 
-2. **Pronunciation hints**: per-section `{word: phonetic}` map, applied as a
+2. **Abbreviation + number expansion** (`5 mg` → `five milligrams`, `Dr.` →
+   `Doctor`, `5` → `five`, etc.) so Kokoro reads them like a human would.
+
+3. **Pronunciation hints**: per-section `{word: phonetic}` map, applied as a
    word-boundary substitution before TTS. Useful for `turmeric` → `ter-mer-ik`,
    `ashwagandha` → `ash-wah-gahn-duh`, etc.
 
-3. **Segment parsing**: each section is split at sentence terminators
+4. **Segment parsing**: each section is split at sentence terminators
    (`.`, `?`, `!`, `...`, `—`). Each segment is sent to Kokoro as its OWN
    call so punctuation drives prosody (questions actually rise, etc.).
-   Variable silence between segments by terminator type:
-     - `.`   → 350 ms
-     - `?` / `!` → 450 ms
-     - `...` → 600 ms
+   Variable silence between segments by terminator:
+     - `.`   → 500 ms
+     - `?` / `!` → 600 ms
+     - `...` → 800 ms
      - `—`   → 200 ms
 
-4. **Emotional cues**: inline bracket tags like `[soft] Wake up tired?` are
-   parsed out (Kokoro does NOT respect them natively — it would pronounce
-   "soft" as a word, see probe). They map to per-segment speed and volume
-   adjustments. `(pause)` adds an extra 300 ms of silence at that point.
-
 The locked brand voice is a blend of three Kokoro voices, averaged in
-embedding space: `af_alloy + am_echo + am_fenrir`. Speed defaults to 1.0
-(matches kokoroai.org web demo). Per-boundary inter-section silences are
-tuned (400/250/250/500 ms) for editorial rhythm.
+embedding space: `af_alloy + am_echo + am_fenrir`. Speed defaults to 0.88
+(deliberate narrator pace). Inter-section silences are 600 ms across the
+board so the editorial rhythm has room to breathe.
 """
 from __future__ import annotations
 
@@ -47,36 +47,20 @@ warnings.filterwarnings("ignore")
 # Locked brand voice
 DEFAULT_VOICE_BLEND: list[str] = ["af_alloy", "am_echo", "am_fenrir"]
 DEFAULT_VOICE: str = ",".join(DEFAULT_VOICE_BLEND)
-DEFAULT_SPEED: float = 1.0
+DEFAULT_SPEED: float = 0.88
 
-# Per-boundary inter-section silences. Index i is the gap AFTER section i.
-INTER_SECTION_SILENCES_S = [
-    0.40,  # after hook    → before tip1
-    0.25,  # after tip1    → before tip2
-    0.25,  # after tip2    → before tip3
-    0.50,  # after tip3    → before CTA
-]
+# Uniform inter-section silence (600 ms after every section boundary).
+INTER_SECTION_SILENCES_S = [0.60, 0.60, 0.60, 0.60]
 
 # Pause in seconds AFTER a segment ending in each terminator
 PAUSE_BY_TERMINATOR_S: dict[str, float] = {
-    ".":   0.35,
-    "?":   0.45,
-    "!":   0.45,
-    "...": 0.60,
+    ".":   0.50,
+    "?":   0.60,
+    "!":   0.60,
+    "...": 0.80,
     "—":   0.20,
 }
-DEFAULT_PAUSE_S = 0.35  # if a segment has no terminator (final segment of section)
-
-# Emotional cues → per-segment speed and volume multipliers. Kokoro does not
-# natively handle bracket tags (verified — it pronounces them as words), so we
-# parse them out and apply the audio adjustments ourselves.
-EMOTIONAL_CUES: dict[str, dict[str, float]] = {
-    "soft":     {"speed_mult": 0.95, "volume_mult": 1.00},
-    "whisper":  {"speed_mult": 0.93, "volume_mult": 0.55},
-    "excited":  {"speed_mult": 1.10, "volume_mult": 1.00},
-    "serious":  {"speed_mult": 0.92, "volume_mult": 1.00},
-}
-EXTRA_PAUSE_TOKEN_S = 0.30  # each `(pause)` adds this much extra silence
+DEFAULT_PAUSE_S = 0.50  # if a segment has no terminator (final segment of section)
 
 SAMPLE_RATE = 24000
 
@@ -87,8 +71,9 @@ _pipeline = None
 _voice_cache: dict[str, torch.Tensor] = {}
 
 # Pre-compiled regexes
-_CUE_RE = re.compile(r"\[(\w+)\]\s*")
-_PAUSE_TOKEN_RE = re.compile(r"\(\s*pause\s*\)\s*", re.IGNORECASE)
+# Bracket tags ([soft], [excited], etc.) are stripped silently — Kokoro v1.0
+# does not honor them; if they reach Kokoro the literal word inside gets spoken.
+_BRACKET_TAG_RE = re.compile(r"\[[^\]]*\]\s*")
 # Terminator match: `...` (2+ periods), or a single `.!?—`. Greedy on periods.
 _TERMINATOR_RE = re.compile(r"(\.{2,}|[.!?—])")
 _NUMBER_RE = re.compile(r"\b\d+\b")
@@ -200,16 +185,15 @@ def parse_segments(text: str) -> list[dict]:
     """Split a section into TTS segments.
 
     Each segment dict carries:
-      - text:        the trimmed spoken text, ending with its punctuation
-      - terminator:  canonical terminator (`.`, `?`, `!`, `...`, or `—`)
-      - speed_mult:  speed multiplier for this segment (cue-driven)
-      - volume_mult: volume multiplier (cue-driven, e.g. whisper)
-      - extra_pause: extra silence to append after the segment's punctuation pause
+      - text:       the trimmed spoken text, ending with its punctuation
+      - terminator: canonical terminator (`.`, `?`, `!`, `...`, or `—`)
 
-    Cues (`[soft]`, `[excited]`, etc.) apply ONLY to the segment they introduce.
-    `(pause)` tokens add EXTRA_PAUSE_TOKEN_S per occurrence to the segment's
-    trailing silence.
+    Any `[...]` bracket tags are stripped silently up front — Kokoro v1.0 does
+    not honor them; if left in, the literal word inside would be spoken aloud.
     """
+    # Strip any bracket tags before parsing
+    text = _BRACKET_TAG_RE.sub("", text)
+
     # Split with capture so terminators are preserved in the result list
     parts = _TERMINATOR_RE.split(text)
     # parts = [text0, term0, text1, term1, ..., trailing_or_empty]
@@ -221,34 +205,7 @@ def parse_segments(text: str) -> list[dict]:
         raw_terminator = parts[i + 1] if i + 1 < len(parts) else None
         terminator = _canonical_terminator(raw_terminator) if raw_terminator else None
 
-        seg_text = raw_text.strip()
-        if not seg_text:
-            i += 2
-            continue
-
-        # Extract leading cue (if any) — applies only to this segment
-        speed_mult = 1.0
-        volume_mult = 1.0
-        m = _CUE_RE.match(seg_text)
-        if m:
-            name = m.group(1).lower()
-            cue = EMOTIONAL_CUES.get(name)
-            if cue:
-                speed_mult = cue["speed_mult"]
-                volume_mult = cue["volume_mult"]
-            seg_text = seg_text[m.end():].lstrip()
-
-        # Strip any further [cue] markers (cues only apply at segment start)
-        seg_text = _CUE_RE.sub("", seg_text)
-
-        # Extract (pause) tokens — each adds EXTRA_PAUSE_TOKEN_S to trailing silence
-        extra_pause = 0.0
-        pause_matches = _PAUSE_TOKEN_RE.findall(seg_text)
-        if pause_matches:
-            extra_pause = EXTRA_PAUSE_TOKEN_S * len(pause_matches)
-            seg_text = _PAUSE_TOKEN_RE.sub("", seg_text)
-
-        seg_text = re.sub(r"\s{2,}", " ", seg_text).strip()
+        seg_text = re.sub(r"\s{2,}", " ", raw_text).strip()
         if not seg_text:
             i += 2
             continue
@@ -263,9 +220,6 @@ def parse_segments(text: str) -> list[dict]:
         segments.append({
             "text": spoken,
             "terminator": terminator,
-            "speed_mult": speed_mult,
-            "volume_mult": volume_mult,
-            "extra_pause": extra_pause,
         })
         i += 2
 
@@ -330,22 +284,17 @@ def synthesize(
 
         segment_arrays: list[np.ndarray] = []
         for j, seg in enumerate(segments):
-            seg_speed = speed * seg["speed_mult"]
             if print_input:
                 print(
                     f"[tts]   seg[{i}.{j}]: {seg['text']!r}  "
-                    f"term={seg['terminator']!r} speed={seg_speed:.2f} "
-                    f"vol={seg['volume_mult']:.2f} extra_pause={seg['extra_pause']:.2f}",
+                    f"term={seg['terminator']!r}",
                     file=sys.stderr,
                 )
             chunks: list[np.ndarray] = []
             for graphemes, phonemes, audio in pipeline(
-                seg["text"], voice=voice_tensor, speed=seg_speed,
+                seg["text"], voice=voice_tensor, speed=speed,
             ):
-                arr = _to_float32(audio)
-                if seg["volume_mult"] != 1.0:
-                    arr = arr * seg["volume_mult"]
-                chunks.append(arr)
+                chunks.append(_to_float32(audio))
                 if print_input:
                     print(
                         f"[tts]     chunk: graphemes={graphemes!r}  "
@@ -362,7 +311,6 @@ def synthesize(
             pieces.append(arr)
             if j < len(segment_arrays) - 1:
                 pause = PAUSE_BY_TERMINATOR_S.get(seg["terminator"], DEFAULT_PAUSE_S)
-                pause += seg["extra_pause"]
                 pieces.append(np.zeros(int(SAMPLE_RATE * pause), dtype=np.float32))
         section_arrays.append(np.concatenate(pieces))
 
