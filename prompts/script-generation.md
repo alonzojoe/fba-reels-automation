@@ -18,16 +18,17 @@ The pipeline expects this exact JSON shape:
 {
   "hook": {
     "text": "string",
-    "queries": ["string", "string", ...]
+    "queries": ["string", "string", ...],
+    "pronunciation_hints": { "word": "phonetic-spelling" }   // optional
   },
   "tips": [
-    { "text": "string", "queries": ["string", "string", ...] },
-    { "text": "string", "queries": ["string", "string", ...] },
-    { "text": "string", "queries": ["string", "string", ...] }
+    { "text": "string", "queries": ["..."], "pronunciation_hints": { ... } },
+    { "text": "string", "queries": ["..."] },
+    { "text": "string", "queries": ["..."] }
   ],
   "cta": {
     "text": "string",
-    "queries": ["string", "string", ...]
+    "queries": ["..."]
   }
 }
 ```
@@ -36,6 +37,8 @@ The pipeline expects this exact JSON shape:
 search queries** — the pipeline rotates through them across the 1.5–3 s
 sub-segments it cuts each section into. More variety in `queries` =
 more visual variety in the final reel.
+
+`pronunciation_hints` is **optional** — see the Phonetic Hints section below.
 
 Back-compat: a single `query`/`search_query` string is still accepted and
 treated as a one-element list — but newly generated scripts should always
@@ -127,6 +130,75 @@ use the `queries` array.
 > ❌ Tip: `"Honey coats the throat, it also kills bacteria naturally."`
 > ✅ CTA: `"Save this for the next time you feel sick."`
 > ✅ CTA: `"Try this tonight and feel the difference."`
+>
+> **Naturalness rules (these make Kokoro TTS sound human, not robotic):**
+>
+> The TTS pipeline does per-segment synthesis: every sentence inside a `text`
+> field is sent to Kokoro as a separate utterance, with silence between
+> segments scaled to the terminator (`.` = 350 ms, `?`/`!` = 450 ms,
+> `...` = 600 ms, em-dash = 200 ms). Lean into this — write copy that *uses*
+> punctuation as a delivery instrument.
+>
+> 1. **Punctuation for breath control.**
+>    - Use `.` between every distinct thought (creates a beat / pause).
+>    - Use `,` for micro-pauses *within* a thought (no breath).
+>    - Use `...` (ellipsis) for dramatic trailing pauses — great in hooks.
+>    - Use `—` (em-dash, U+2014) for a sudden pivot mid-sentence.
+>    - Example: `"Tired all the time? Here's why... and how to fix it."`
+>
+> 2. **Two-sentence blocks (HARD limit, enforced by the validator).**
+>    No `text` field may contain more than 2 sentences. If a tip needs more
+>    detail, write a tighter version — don't pile sentences. The pipeline
+>    rejects any section over 2 sentences to prevent breathless TTS.
+>
+> 3. **Phonetic spelling for hard words** (`pronunciation_hints` field).
+>    Kokoro mispronounces several common health terms. Add a
+>    `pronunciation_hints` map to any section containing them. Common ones:
+>
+>    | Word                | Phonetic           |
+>    |---------------------|--------------------|
+>    | turmeric            | `ter-mer-ik`       |
+>    | echinacea           | `ek-uh-nay-shuh`   |
+>    | ashwagandha         | `ash-wah-gahn-duh` |
+>    | quercetin           | `kwer-suh-tin`     |
+>    | elderberry          | `el-der-ber-ee`    |
+>    | apple cider vinegar | `ap-ul sigh-der vin-uh-ger` |
+>
+>    Example:
+>    ```json
+>    {
+>      "text": "Try turmeric tea every morning.",
+>      "pronunciation_hints": { "turmeric": "ter-mer-ik" }
+>    }
+>    ```
+>    The pipeline does a word-boundary, case-insensitive substitution before
+>    sending the text to Kokoro. You can add hints for any word the model is
+>    likely to flub.
+>
+> 4. **Emotional / delivery cues** (use SPARINGLY — max 1–2 per reel, only
+>    on the hook or CTA). Inline bracketed tags that map to per-segment
+>    speed + volume adjustments. Kokoro does NOT respect these natively, so
+>    the pipeline parses them out and applies the changes itself.
+>
+>    | Cue          | Effect                                             |
+>    |--------------|----------------------------------------------------|
+>    | `[soft]`     | Speed × 0.95, normal volume                        |
+>    | `[whisper]`  | Speed × 0.93, volume × 0.55 (quiet, intimate)      |
+>    | `[excited]`  | Speed × 1.10                                       |
+>    | `[serious]`  | Speed × 0.92                                       |
+>    | `(pause)`    | Adds +300 ms extra silence at that boundary        |
+>
+>    Cues apply only to the segment they introduce (until the next terminator).
+>
+>    Examples:
+>    - `"[soft] Wake up tired every day? [excited] Here's the fix!"`
+>    - `"Drink this... [whisper] before bed."`
+>
+> 5. **Numbers and abbreviations**: the pipeline auto-expands these, so write
+>    them naturally — `5 mg` → "five milligrams", `Dr.` → "Doctor", `%` →
+>    "percent", `&` → "and". Integers 0–100 are spelled out automatically;
+>    larger numbers stay as digits (write them out yourself if needed:
+>    `"twelve hundred"` instead of `"1200"`).
 >
 > **Queries rules — this is the most important part:**
 > Each section gets **2–3 Pexels search queries** that the renderer
