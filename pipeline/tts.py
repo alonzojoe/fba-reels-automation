@@ -6,10 +6,12 @@ then stitched together with silence MP3s between segments and between sections.
 The combined MP3 is finally converted to a 16 kHz mono WAV for faster-whisper.
 
 Key features:
-- Five built-in narrator voices selectable by friendly name (Brian, Bill, Daniel,
-  Adam, Antoni) or raw `voice_id` via the `--voice` CLI flag. Default: Brian.
-- Model `eleven_turbo_v2_5` — fastest, cheapest in credit consumption, and high
-  quality for English content.
+- Eight narrator voices selectable by friendly name (`liam`, `josh`, `charlie`,
+  `callum`, `sam`, `brian`, `bill`, `adam`) or raw `voice_id` via the
+  `--voice` CLI flag. Default: **Liam** — expressive American male.
+- Model `eleven_multilingual_v2` — noticeably better emotional range and
+  inflection than the cheaper turbo model. ~2× credit cost per character; at
+  ~350 chars per reel that still leaves 12-15 reels on the 10K-char free tier.
 - Same text preprocessing as before: bracket-tag stripping, abbreviation
   expansion (`5 mg` → "five milligrams"), integer-to-words (0–100), and
   optional per-section `pronunciation_hints` map.
@@ -39,23 +41,31 @@ from elevenlabs.client import ElevenLabs
 
 # ---------- Voice catalog ----------
 
-# Friendly name → ElevenLabs voice_id. All available on the free tier.
+# Friendly name (lowercase) → ElevenLabs voice_id. All free-tier-accessible.
+# Names are matched case-insensitively in `resolve_voice`.
 VOICES: dict[str, str] = {
-    "Brian":  "nPczCjzI2devNBz1zQrb",  # warm, mature narrator — DEFAULT
-    "Bill":   "pqHfZKP75CvOlQylNhV4",  # deep, authoritative
-    "Daniel": "onwK4e9ZLuTAKqWW03F9",  # British, professional
-    "Adam":   "pNInz6obpgDQGcFmaJgB",  # deep, classic narrator
-    "Antoni": "ErXwobaYiN019PkySvjV",  # younger, energetic
+    "liam":    "TX3LPaxmHKxFdv7VOQHJ",  # expressive American male — DEFAULT
+    "josh":    "TxGEqnHWrfWFTfGW9XjX",  # deep, mature narrator
+    "charlie": "IKne3meq5aSn9XLyUdCD",  # casual Australian male
+    "callum":  "N2lVS1w4EtoT3dr4eOWO",  # intense, dramatic
+    "sam":     "yoZ06aMxZJJ28mfd3POQ",  # raspy, real-sounding
+    "brian":   "nPczCjzI2devNBz1zQrb",  # warm, mature
+    "bill":    "pqHfZKP75CvOlQylNhV4",  # authoritative, deep
+    "adam":    "pNInz6obpgDQGcFmaJgB",  # classic narrator
 }
-DEFAULT_VOICE: str = "Brian"
-DEFAULT_MODEL: str = "eleven_turbo_v2_5"
+DEFAULT_VOICE: str = "liam"
+DEFAULT_MODEL: str = "eleven_multilingual_v2"
 DEFAULT_OUTPUT_FORMAT: str = "mp3_44100_128"
 
-# Same VoiceSettings for every render — keep brand voice consistent.
+# Expressive VoiceSettings tuned for narrator energy.
+#   stability=0.35       — lower = more emotional variation per sentence
+#   similarity_boost=0.80 — keep voice consistent across segments
+#   style=0.55           — much higher = dramatic narrator energy
+#   use_speaker_boost    — clarity over mic-presence
 VOICE_SETTINGS = VoiceSettings(
-    stability=0.5,
-    similarity_boost=0.75,
-    style=0.3,
+    stability=0.35,
+    similarity_boost=0.80,
+    style=0.55,
     use_speaker_boost=True,
 )
 
@@ -123,12 +133,21 @@ def _get_client() -> ElevenLabs:
 
 
 def resolve_voice(voice: str) -> str:
-    """Accept either a friendly name (Brian, Bill, ...) or a raw voice_id."""
-    return VOICES.get(voice, voice)
+    """Accept either a friendly name (case-insensitive) or a raw voice_id."""
+    return VOICES.get(voice.lower(), voice)
+
+
+_credit_warning_printed = False
 
 
 def get_credit_balance() -> tuple[int | None, int | None]:
-    """Return (used, limit) from the ElevenLabs subscription endpoint."""
+    """Return (used, limit) from the ElevenLabs subscription endpoint.
+
+    Best-effort: requires the `user_read` permission on the API key. If the
+    key lacks it (or any other error), we print ONE concise warning and
+    keep returning (None, None) on subsequent calls without spamming.
+    """
+    global _credit_warning_printed
     try:
         info = _get_client().user.get()
         sub = getattr(info, "subscription", None)
@@ -138,7 +157,23 @@ def get_credit_balance() -> tuple[int | None, int | None]:
         limit = getattr(sub, "character_limit", None)
         return used, limit
     except Exception as e:
-        print(f"[tts] (credit balance unavailable: {e})", file=sys.stderr)
+        if not _credit_warning_printed:
+            msg = str(e)
+            if "missing_permissions" in msg or "user_read" in msg:
+                print(
+                    "[tts] (credit balance unavailable — API key lacks the "
+                    "`user_read` permission; enable it at "
+                    "https://elevenlabs.io/app/settings/api-keys to see "
+                    "usage)",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    f"[tts] (credit balance unavailable: "
+                    f"{type(e).__name__})",
+                    file=sys.stderr,
+                )
+            _credit_warning_printed = True
         return None, None
 
 
@@ -278,7 +313,7 @@ def synthesize(
     drives prosody and silences are inserted between segments deterministically.
     """
     voice_id = resolve_voice(voice)
-    voice_label = voice if voice in VOICES else f"voice_id={voice}"
+    voice_label = voice.lower() if voice.lower() in VOICES else f"voice_id={voice}"
     print(f"[tts] voice: {voice_label}  model: {DEFAULT_MODEL}", file=sys.stderr)
 
     hints_list = pronunciation_hints_by_section or [{}] * len(sections)
