@@ -48,8 +48,10 @@ use the `queries` array.
 
 ## The prompt — copy from here
 
-> You are writing a short, punchy script for a vertical Facebook Reel
-> about health and home remedies.
+> You are writing a script for a vertical Facebook Reel about health and
+> home remedies. The script will be read by a Kokoro TTS narrator at slow,
+> deliberate speed (0.88×), so the way you write punctuation IS the way it
+> will be delivered.
 >
 > Output ONLY a JSON object with this shape (no prose, no markdown, no
 > code fences — raw JSON):
@@ -66,177 +68,126 @@ use the `queries` array.
 > }
 > ```
 >
-> **Script rules:**
-> - **Hook**: 1–2 short sentences, each ending with proper terminal
->   punctuation. Under ~15 words total.
-> - **Tips**: EXACTLY 3 tips, each 1–2 short sentences.
-> - **CTA**: ONE clear directive sentence.
-> - Total spoken length must run **30–45 seconds (~85–125 words)**.
-> - Voice: friendly, direct, conversational. Speak to one viewer.
+> **Voice & style — this is the most important section. Read it twice.**
+>
+> The narrator should sound like a knowledgeable friend leaning in,
+> *not* a textbook. The TTS engine adds breath/pause between every
+> sentence based on the punctuation you use — so write copy that *uses*
+> punctuation as delivery, not as grammar.
+>
+> 1. **Radical sentence shortening.** Most sentences should be 3–8 words.
+>    Any sentence over 12 words must be split.
+>
+>    ❌ "Drink twelve ounces of lemon water within ten minutes of waking. It
+>        rehydrates your cells and gives a fast vitamin C boost."
+>    ✅ "Drink lemon water. Twelve ounces. Right when you wake up. It
+>        rehydrates your cells... and gives a vitamin C boost."
+>
+> 2. **Use fragments like a real person.** Spoken English is full of
+>    fragments. So is good reel copy.
+>
+>    ✅ `"Tired every morning? Same."`
+>    ✅ `"Three tips. Try them tomorrow."`
+>    ✅ `"Lemon water. First thing. Trust me."`
+>
+> 3. **Strategic ellipses (...) for rhythm and weight.** Especially powerful:
+>    - Before the punchline of a tip
+>    - Between cause and effect
+>    - In the CTA for emotional weight
+>
+>    The TTS engine adds an **800 ms** pause after `...`, so use it
+>    deliberately, not decoratively.
+>
+>    ✅ "Splash cold water on your face... and feel your whole body wake up."
+>    ✅ "Save this tonight... your future self will thank you."
+>
+> 4. **Conversational phrasing, not textbook.** Replace clinical phrasing
+>    with how a friend would explain it over coffee.
+>
+>    ❌ "It activates your vagus nerve and triggers a full body wake-up."
+>    ✅ "It wakes up your nervous system. Fast."
+>
+>    ❌ "Light on your eyes resets your circadian rhythm and shuts off melatonin."
+>    ✅ "Sunlight tells your brain... it's time to wake up."
+>
+> 5. **Pronoun variety.** Don't start every sentence with the same word.
+>    Mix "you", "your body", "this", "it" — and use fragments to skip the
+>    subject entirely. Variety in sentence-openers is what separates human
+>    speech from AI slop.
+>
+> 6. **Soft / excited delivery comes from STRUCTURE, not tags.** The TTS
+>    engine does NOT support bracket cues like `[soft]` or `[excited]` —
+>    they would be read aloud literally. Get those effects by:
+>    - Soft / intimate → short sentences + ellipses ("Honey. One spoon. Trust me…")
+>    - Excited / punchy → exclamation marks + fragments ("It works! Try it!")
+>    - Authoritative → declarative sentences + periods ("This is why.")
+>
+> **Hard rules (validator enforces):**
+>
+> - **Hook**: 1–3 short sentences. If you pose a question, write it as a
+>   *true* syntactic question (starts with `Do`/`Does`/`Why`/`Have`/`Are`/
+>   `Want`/etc., or has subject-auxiliary inversion). An elliptical question
+>   like `"Sore throat?"` reads flat — but the FULL pattern `"Sore throat?
+>   Try this."` works because the second sentence resolves it.
+> - **Tips**: EXACTLY 3 tips. Each tip can use 2–5 short fragments (no cap).
+> - **CTA**: 1–2 short sentences.
+> - **Total spoken length**: 30–45 seconds (~85–125 words *including* short
+>   fragments).
+> - **Punctuation**: every sentence ends with `.`, `?`, `!`, `...`, or `—`.
+>   No comma splices. No question mark on a sentence that isn't a true question.
 > - **No medical claims** — use "may help", "supports", "soothes", "is
 >   traditionally used for".
-> - No emojis, hashtags, or markdown.
+> - No emojis, hashtags, markdown, or bracket cues.
 >
-> **Punctuation rules — these drive TTS prosody, get them right:**
-> Every `text` field will be sent to a TTS model that derives rising /
-> falling / emphatic intonation from punctuation. Malformed punctuation =
-> flat-sounding voiceover, and the pipeline will reject obvious mistakes.
->
-> 1. **Every sentence ends with EXACTLY ONE terminal mark**: `.`, `?`, or
->    `!`. No double `??`, `?!`, `...`, etc.
-> 2. **Question marks only on actual questions** — and only if the
->    sentence is a *true syntactic* question (see Hook rule below).
-> 3. **No comma splices.** Two independent clauses get a period between
->    them, not a comma. If both clauses can stand alone as sentences,
->    they MUST be separated by `.`, `?`, or `!`.
-> 4. **Use periods for punchy delivery**, not commas. Short staccato
->    sentences ("Skip the pharmacy. Try this instead.") read with more
->    energy than long comma-stitched ones.
-> 5. **No run-ons.** Keep every single sentence (between two terminal
->    marks) under ~25 words. The validator warns at that threshold.
->
-> **Hook structure (most important section):**
-> The hook is the first 3–5 seconds of the reel. It decides whether
-> viewers stay. Use the classic *question + payoff* pattern, or two
-> punchy statements.
->
-> Hook-as-question rule: when the hook poses a question, write it as a
-> **true syntactic question** — start with a question word (Do, Does,
-> Did, Why, How, What, When, Have, Could, Would, Will, Are, Is) or use
-> subject-auxiliary inversion. The TTS model uses these cues to produce
-> rising intonation; a *period-with-a-question-mark* construction reads
-> flat.
->
-> ✅ Good hooks (true question + payoff statement, both fully terminated):
-> - `"Do you wake up with a sore throat? Skip the pharmacy."`
-> - `"Tired all the time? Try this one trick."`
-> - `"Have you tried this for nausea? It works in minutes."`
-> - `"Why does your back hurt every morning? Here's the fix."`
->
-> ❌ Bad hooks (will be rejected by the validator):
-> - `"Wake up with a sore throat, skip the pharmacy?"`
->   — comma splice + stranded question mark on the wrong clause
-> - `"Are you tired and need energy, this will help!"`
->   — comma splice between two independent clauses
-> - `"Sore throat again?"`
->   — elliptical noun phrase; the `?` won't produce rising intonation
-> - `"Wake up with a sore throat?"`
->   — imperative shape disguised as a question; TTS reads it flat
->
-> **Tip and CTA structure:** same punctuation rules. Periods between
-> independent clauses, not commas.
->
-> ✅ Tip: `"Honey coats the throat. It also kills bacteria naturally."`
-> ❌ Tip: `"Honey coats the throat, it also kills bacteria naturally."`
-> ✅ CTA: `"Save this for the next time you feel sick."`
-> ✅ CTA: `"Try this tonight and feel the difference."`
->
-> **Naturalness rules (these make Kokoro TTS sound human, not robotic):**
->
-> The TTS pipeline does per-segment synthesis: every sentence inside a `text`
-> field is sent to Kokoro as a separate utterance, with silence between
-> segments scaled to the terminator (`.` = 350 ms, `?`/`!` = 450 ms,
-> `...` = 600 ms, em-dash = 200 ms). Lean into this — write copy that *uses*
-> punctuation as a delivery instrument.
->
-> 1. **Punctuation for breath control.**
->    - Use `.` between every distinct thought (creates a beat / pause).
->    - Use `,` for micro-pauses *within* a thought (no breath).
->    - Use `...` (ellipsis) for dramatic trailing pauses — great in hooks.
->    - Use `—` (em-dash, U+2014) for a sudden pivot mid-sentence.
->    - Example: `"Tired all the time? Here's why... and how to fix it."`
->
-> 2. **Two-sentence blocks (HARD limit, enforced by the validator).**
->    No `text` field may contain more than 2 sentences. If a tip needs more
->    detail, write a tighter version — don't pile sentences. The pipeline
->    rejects any section over 2 sentences to prevent breathless TTS.
->
-> 3. **Phonetic spelling for hard words** (`pronunciation_hints` field).
->    Kokoro mispronounces several common health terms. Add a
->    `pronunciation_hints` map to any section containing them. Common ones:
->
->    | Word                | Phonetic           |
->    |---------------------|--------------------|
->    | turmeric            | `ter-mer-ik`       |
->    | echinacea           | `ek-uh-nay-shuh`   |
->    | ashwagandha         | `ash-wah-gahn-duh` |
->    | quercetin           | `kwer-suh-tin`     |
->    | elderberry          | `el-der-ber-ee`    |
->    | apple cider vinegar | `ap-ul sigh-der vin-uh-ger` |
->
->    Example:
->    ```json
->    {
->      "text": "Try turmeric tea every morning.",
->      "pronunciation_hints": { "turmeric": "ter-mer-ik" }
->    }
->    ```
->    The pipeline does a word-boundary, case-insensitive substitution before
->    sending the text to Kokoro. You can add hints for any word the model is
->    likely to flub.
->
-> 4. **Emotional / delivery cues** (use SPARINGLY — max 1–2 per reel, only
->    on the hook or CTA). Inline bracketed tags that map to per-segment
->    speed + volume adjustments. Kokoro does NOT respect these natively, so
->    the pipeline parses them out and applies the changes itself.
->
->    | Cue          | Effect                                             |
->    |--------------|----------------------------------------------------|
->    | `[soft]`     | Speed × 0.95, normal volume                        |
->    | `[whisper]`  | Speed × 0.93, volume × 0.55 (quiet, intimate)      |
->    | `[excited]`  | Speed × 1.10                                       |
->    | `[serious]`  | Speed × 0.92                                       |
->    | `(pause)`    | Adds +300 ms extra silence at that boundary        |
->
->    Cues apply only to the segment they introduce (until the next terminator).
->
->    Examples:
->    - `"[soft] Wake up tired every day? [excited] Here's the fix!"`
->    - `"Drink this... [whisper] before bed."`
->
-> 5. **Numbers and abbreviations**: the pipeline auto-expands these, so write
->    them naturally — `5 mg` → "five milligrams", `Dr.` → "Doctor", `%` →
->    "percent", `&` → "and". Integers 0–100 are spelled out automatically;
->    larger numbers stay as digits (write them out yourself if needed:
->    `"twelve hundred"` instead of `"1200"`).
->
-> **Queries rules — this is the most important part:**
-> Each section gets **2–3 Pexels search queries** that the renderer
-> rotates through to cut a varied B-roll sequence. Queries must be
-> *visually evocative*, not abstract.
+> **Queries (Pexels search terms):**
+> Each section gets **2–3 visually-evocative Pexels queries** (3–6 words
+> each). The pipeline cuts each section into 1.5–3 s sub-segments and
+> rotates through your queries.
 >
 > 1. **Be descriptive and action-oriented.** Show people *doing* things:
 >    - Bad: `"ginger tea"`. Good: `"person pouring hot tea into mug closeup"`.
->    - Bad: `"drinking water"`. Good: `"woman drinking water glass slow motion"`.
->
-> 2. **Include shot-type / camera-angle hints** so Pexels surfaces visually
->    interesting footage. Mix shot types across a section's queries:
->    - `closeup`, `macro`, `overhead`, `slow motion`, `side profile`,
->      `pov`, `top down`, `cinematic`, `studio shot`.
->
-> 3. **For symptoms or body-related content, show the body part.** This is
->    high-retention because viewers self-identify:
->    - "sore throat" → `"person touching throat in pain"`
->    - "headache" → `"person rubbing temples closeup"`
->    - "stomach pain" → `"hand on stomach woman"`
->    - "tired eyes" → `"tired eyes macro shot"`
->    - "back pain" → `"person stretching lower back"`
->
+> 2. **Include shot-type / camera-angle hints**: `closeup`, `macro`, `overhead`,
+>    `slow motion`, `side profile`, `pov`, `top down`, `cinematic`.
+> 3. **For symptoms or body-related content, show the body part**: throat,
+>    eyes, hands, stomach, temples. High retention because viewers self-identify.
 > 4. **Hook queries should be punchy and visually striking** — close-ups,
->    macro, dramatic compositions. The hook is cut faster (1.5–2 s per
->    clip) so the visuals need to grab attention immediately.
+>    macro, dramatic compositions.
 >
-> 5. **Each query is 3–6 words.** Pexels does poorly with long natural-
->    language queries; keep them as keyword phrases.
+> **Phonetic hints (`pronunciation_hints`):**
+> Kokoro mispronounces several common health terms. Add a hint map to any
+> section that contains one. Common values:
+>
+> | Word                | Phonetic                       |
+> |---------------------|--------------------------------|
+> | turmeric            | `ter-mer-ik`                   |
+> | echinacea           | `ek-uh-nay-shuh`               |
+> | ashwagandha         | `ash-wah-gahn-duh`             |
+> | quercetin           | `kwer-suh-tin`                 |
+> | elderberry          | `el-der-ber-ee`                |
+> | apple cider vinegar | `ap-ul sigh-der vin-uh-ger`    |
+>
+> Example:
+> ```json
+> {
+>   "text": "Try turmeric tea every morning.",
+>   "pronunciation_hints": { "turmeric": "ter-mer-ik" }
+> }
+> ```
+>
+> **Numbers and abbreviations** are auto-expanded by the TTS preprocessor —
+> write them naturally. `5 mg` becomes "five milligrams"; `Dr.` becomes
+> "Doctor"; `%` becomes "percent"; integers 0–100 are spelled out.
 >
 > ---
 >
-> ### Example 1 — topic: "5 home remedies for sore throat"
+> **THREE WORKED EXAMPLES — match this style and rhythm:**
+>
+> ### Example A — topic: "Sore throat remedies"
 >
 > ```json
 > {
 >   "hook": {
->     "text": "Do you wake up with a sore throat? Skip the pharmacy — your kitchen has the fix.",
+>     "text": "Sore throat? Try this... before reaching for medicine.",
 >     "queries": [
 >       "person touching throat closeup",
 >       "woman with sore throat hand on neck",
@@ -245,83 +196,131 @@ use the `queries` array.
 >   },
 >   "tips": [
 >     {
->       "text": "Gargle warm salt water for thirty seconds. The salt draws fluid from swollen tissues and soothes the burning.",
+>       "text": "Honey. One spoon. It coats your throat... and kills bacteria naturally.",
 >       "queries": [
->         "salt water glass overhead",
+>         "honey drizzling spoon macro",
+>         "raw honey jar wooden table",
+>         "person taking spoonful honey"
+>       ]
+>     },
+>     {
+>       "text": "Salt water gargle. Warm. Three times a day. The salt pulls out inflammation.",
+>       "queries": [
+>         "salt being poured spoon",
 >         "person gargling slow motion",
->         "tablespoon salt being poured"
+>         "glass of warm water closeup"
 >       ]
 >     },
 >     {
->       "text": "Stir raw honey and lemon into hot water. Honey coats the throat while lemon's vitamin C supports your immune system.",
+>       "text": "Ginger tea with lemon. Sip it slowly. It reduces swelling fast.",
 >       "queries": [
->         "honey drizzling into mug macro",
+>         "ginger tea pouring cup",
 >         "lemon slice squeezed closeup",
->         "person sipping warm drink steam"
->       ]
->     },
->     {
->       "text": "Inhale steam from a bowl with eucalyptus oil. Drape a towel over your head and breathe slowly for ten minutes.",
->       "queries": [
->         "steam rising bowl closeup",
->         "eucalyptus leaves wooden table",
->         "person inhaling steam towel"
+>         "person holding warm mug hands"
 >       ]
 >     }
 >   ],
 >   "cta": {
->     "text": "Save this for the next time a sore throat hits.",
+>     "text": "Try this tonight... and wake up feeling better.",
 >     "queries": [
->       "person holding warm mug hands",
->       "wellness self care morning routine"
+>       "cozy bed morning light",
+>       "person stretching getting out of bed"
 >     ]
 >   }
 > }
 > ```
 >
-> ### Example 2 — topic: "benefits of turmeric"
+> ### Example B — topic: "Waking up tired"
 >
 > ```json
 > {
 >   "hook": {
->     "text": "This golden spice has been used for over 4,000 years for one good reason.",
+>     "text": "Waking up tired every day? Three fixes. They actually work.",
 >     "queries": [
->       "turmeric powder bowl macro",
->       "fresh turmeric root sliced closeup",
->       "spices on dark wooden table cinematic"
+>       "tired woman rubbing eyes morning bed closeup",
+>       "woman yawning slow motion closeup",
+>       "alarm clock bedside table morning light"
 >     ]
 >   },
 >   "tips": [
 >     {
->       "text": "Turmeric contains curcumin, a natural compound that may help reduce inflammation. Add half a teaspoon to your warm milk.",
+>       "text": "Lemon water. First thing. It rehydrates fast... and gives you vitamin C.",
 >       "queries": [
->         "turmeric milk being stirred mug",
->         "person pouring warm milk closeup",
->         "golden latte overhead"
+>         "person pouring lemon water glass macro",
+>         "hand squeezing lemon into glass slow motion",
+>         "woman drinking water morning kitchen closeup"
 >       ]
 >     },
 >     {
->       "text": "It supports digestion by helping the gallbladder produce more bile. Try a pinch in soups or roasted vegetables.",
+>       "text": "Morning sunlight. Ten minutes. It tells your brain... it's time to wake up.",
 >       "queries": [
->         "soup simmering pot stove",
->         "person adding spice to pan",
->         "roasted vegetables overhead"
+>         "person stretching arms sunrise outdoor",
+>         "morning sunlight through window face closeup",
+>         "woman closing eyes feeling sun warmth"
 >       ]
 >     },
 >     {
->       "text": "For better absorption, always pair turmeric with black pepper and a little olive oil.",
+>       "text": "Cold water on your face. Fifteen seconds. It activates your whole nervous system.",
 >       "queries": [
->         "black pepper grinder macro",
->         "olive oil pouring slow motion",
->         "spices on wooden board top down"
+>         "woman splashing face cold water",
+>         "person washing face bathroom morning",
+>         "hands cupping water closeup"
 >       ]
 >     }
 >   ],
 >   "cta": {
->     "text": "Save this for the next time you cook.",
+>     "text": "Save this. Try it tomorrow... your body will thank you.",
 >     "queries": [
->       "person cooking kitchen warm light",
->       "hands sprinkling spices into pan"
+>       "person stretching getting out of bed morning",
+>       "morning routine planner notebook hands"
+>     ]
+>   }
+> }
+> ```
+>
+> ### Example C — topic: "Bloating"
+>
+> ```json
+> {
+>   "hook": {
+>     "text": "Bloated all the time? Here's what's really going on.",
+>     "queries": [
+>       "person holding stomach uncomfortable closeup",
+>       "bloated belly hand on abdomen",
+>       "woman feeling sick stomach"
+>     ]
+>   },
+>   "tips": [
+>     {
+>       "text": "Ditch the soda. Even diet. The bubbles trap gas in your gut.",
+>       "queries": [
+>         "carbonated drink poured into glass macro",
+>         "soda bottle on table closeup",
+>         "bubbles fizzy drink slow motion"
+>       ]
+>     },
+>     {
+>       "text": "Chew slower. Way slower. Half your bloating comes from swallowed air.",
+>       "queries": [
+>         "person eating slowly closeup mouth",
+>         "fork lifting food macro",
+>         "woman chewing food side profile"
+>       ]
+>     },
+>     {
+>       "text": "Try peppermint tea. After meals. It relaxes your digestive muscles... and releases gas.",
+>       "queries": [
+>         "peppermint leaves macro",
+>         "person pouring tea cozy kitchen",
+>         "warm tea cup steam closeup"
+>       ]
+>     }
+>   ],
+>   "cta": {
+>     "text": "Pick one. Start today. Feel the difference in a week.",
+>     "queries": [
+>       "person preparing healthy meal kitchen",
+>       "wellness routine morning hands"
 >     ]
 >   }
 > }
