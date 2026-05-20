@@ -241,10 +241,16 @@ def main() -> None:
         print(f"\n[reel] Dry run complete. Work dir: {work_dir}")
         return
 
+    # Per-section pronunciation hints (optional in script JSON)
+    pronunciation_hints = [
+        sec.get("pronunciation_hints", {}) for sec in sections_meta
+    ]
+
     print(f"[2/6] Synthesizing voiceover with Kokoro TTS ({args.voice} @ {args.speed})...")
     voice_wav, section_bounds = tts.synthesize(
         section_texts, args.voice, work_dir,
         speed=args.speed, print_input=args.print_tts_input,
+        pronunciation_hints_by_section=pronunciation_hints,
     )
     (work_dir / "sections.json").write_text(json.dumps(section_bounds, indent=2))
     total_voice_duration = section_bounds[-1]["end"]
