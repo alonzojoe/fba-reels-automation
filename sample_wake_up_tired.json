@@ -1,6 +1,6 @@
 {
   "hook": {
-    "text": "Do you wake up tired every morning? Try these three quick boosts.",
+    "text": "[soft] Do you wake up tired every morning? Here are three boosts that actually work.",
     "queries": [
       "tired woman rubbing eyes morning bed closeup",
       "woman yawning slow motion closeup",
@@ -9,7 +9,7 @@
   },
   "tips": [
     {
-      "text": "Drink twelve ounces of lemon water within ten minutes of waking. It rehydrates your cells and gives a vitamin C boost.",
+      "text": "Drink twelve ounces of lemon water within ten minutes of waking. It rehydrates your cells and gives a fast vitamin C boost.",
       "queries": [
         "person pouring lemon water glass macro",
         "hand squeezing lemon into glass slow motion",
@@ -17,7 +17,7 @@
       ]
     },
     {
-      "text": "Step outside for ten minutes of direct morning sunlight. Light on your eyes resets your circadian rhythm and shuts off melatonin.",
+      "text": "Step outside for ten minutes of morning sunlight. Light on your eyes resets your circadian rhythm and shuts off melatonin.",
       "queries": [
         "person stretching arms sunrise outdoor",
         "morning sunlight through window face closeup",
@@ -34,7 +34,7 @@
     }
   ],
   "cta": {
-    "text": "Save this for tomorrow morning's routine.",
+    "text": "Save this for tomorrow morning... your future self will thank you.",
     "queries": [
       "person stretching getting out of bed morning",
       "morning routine planner notebook hands"
