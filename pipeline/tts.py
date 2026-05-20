@@ -1,33 +1,28 @@
-"""Voiceover synthesis with Kokoro TTS — naturalness-tuned.
+"""Voiceover synthesis via the ElevenLabs API.
 
-Naturalness layers applied in order, per section:
+Replaces the previous Kokoro engine. Each sentence is sent to ElevenLabs as
+its own `text_to_speech.convert` call (returning MP3 bytes), saved to disk,
+then stitched together with silence MP3s between segments and between sections.
+The combined MP3 is finally converted to a 16 kHz mono WAV for faster-whisper.
 
-1. **Bracket stripping**: any `[...]` tags are deleted before parsing.
-   Kokoro v1.0 does NOT support cues like `[soft]`/`[whisper]` (verified —
-   it pronounces them as words). If a script contains them anyway, they're
-   silently removed so the literal bracketed text never reaches Kokoro.
-
-2. **Abbreviation + number expansion** (`5 mg` → `five milligrams`, `Dr.` →
-   `Doctor`, `5` → `five`, etc.) so Kokoro reads them like a human would.
-
-3. **Pronunciation hints**: per-section `{word: phonetic}` map, applied as a
-   word-boundary substitution before TTS. Useful for `turmeric` → `ter-mer-ik`,
-   `ashwagandha` → `ash-wah-gahn-duh`, etc.
-
-4. **Segment parsing**: each section is split at sentence terminators
-   (`.`, `?`, `!`, `...`, `—`). Each segment is sent to Kokoro as its OWN
-   call so punctuation drives prosody (questions actually rise, etc.).
-   Variable silence between segments by terminator (Reels-snappy pace):
-     - `.`   → 200 ms
-     - `?` / `!` → 250 ms
-     - `...` → 400 ms
-     - `—`   → 200 ms
-
-The locked brand voice is a blend of three Kokoro voices, averaged in
-embedding space: `af_alloy + am_echo + am_fenrir`. Speed defaults to 0.95
-(snappy confident narrator). Inter-section silences taper from 250 ms
-(hook → tip1) down to 150 ms between tips and back up to 300 ms before
-the CTA, so the rhythm has momentum without sounding rushed.
+Key features:
+- Five built-in narrator voices selectable by friendly name (Brian, Bill, Daniel,
+  Adam, Antoni) or raw `voice_id` via the `--voice` CLI flag. Default: Brian.
+- Model `eleven_turbo_v2_5` — fastest, cheapest in credit consumption, and high
+  quality for English content.
+- Same text preprocessing as before: bracket-tag stripping, abbreviation
+  expansion (`5 mg` → "five milligrams"), integer-to-words (0–100), and
+  optional per-section `pronunciation_hints` map.
+- Same punctuation-driven prosody: each `.`/`?`/`!`/`...`/`—` segment is its
+  own API call so punctuation actually drives intonation.
+- Snappy Reels-tuned silences: `.` 200 ms, `?`/`!` 250 ms, `...` 400 ms,
+  em-dash 200 ms. Section gaps tapered: hook→tip1 250 ms, tip→tip 150 ms,
+  tip3→cta 300 ms.
+- Speed/pacing is owned by ElevenLabs (controlled via `voice_settings.stability`
+  and the model itself) — no `speed` multiplier any more.
+- Pre-flight credit check + post-render credit usage via the ElevenLabs
+  `user.get()` endpoint. Warns + prompts for confirmation if a single reel
+  is estimated to exceed the remaining free-tier balance.
 """
 from __future__ import annotations
 
@@ -35,31 +30,44 @@ import os
 import re
 import subprocess
 import sys
-import warnings
 from pathlib import Path
 
 import num2words
-import numpy as np
-import soundfile as sf
-import torch
+from elevenlabs import VoiceSettings
+from elevenlabs.client import ElevenLabs
 
-warnings.filterwarnings("ignore")
 
-# Locked brand voice
-DEFAULT_VOICE_BLEND: list[str] = ["af_alloy", "am_echo", "am_fenrir"]
-DEFAULT_VOICE: str = ",".join(DEFAULT_VOICE_BLEND)
-DEFAULT_SPEED: float = 0.95
+# ---------- Voice catalog ----------
 
-# Per-boundary inter-section silences (snappy Reels pace).
-# Index i is the gap AFTER section i — order matches [hook, tip1, tip2, tip3, cta].
+# Friendly name → ElevenLabs voice_id. All available on the free tier.
+VOICES: dict[str, str] = {
+    "Brian":  "nPczCjzI2devNBz1zQrb",  # warm, mature narrator — DEFAULT
+    "Bill":   "pqHfZKP75CvOlQylNhV4",  # deep, authoritative
+    "Daniel": "onwK4e9ZLuTAKqWW03F9",  # British, professional
+    "Adam":   "pNInz6obpgDQGcFmaJgB",  # deep, classic narrator
+    "Antoni": "ErXwobaYiN019PkySvjV",  # younger, energetic
+}
+DEFAULT_VOICE: str = "Brian"
+DEFAULT_MODEL: str = "eleven_turbo_v2_5"
+DEFAULT_OUTPUT_FORMAT: str = "mp3_44100_128"
+
+# Same VoiceSettings for every render — keep brand voice consistent.
+VOICE_SETTINGS = VoiceSettings(
+    stability=0.5,
+    similarity_boost=0.75,
+    style=0.3,
+    use_speaker_boost=True,
+)
+
+
+# ---------- Snappy Reels timings ----------
+
 INTER_SECTION_SILENCES_S = [
     0.25,  # after hook → before tip1
     0.15,  # after tip1 → before tip2
     0.15,  # after tip2 → before tip3
     0.30,  # after tip3 → before CTA
 ]
-
-# Pause in seconds AFTER a segment ending in each terminator
 PAUSE_BY_TERMINATOR_S: dict[str, float] = {
     ".":   0.20,
     "?":   0.25,
@@ -67,24 +75,19 @@ PAUSE_BY_TERMINATOR_S: dict[str, float] = {
     "...": 0.40,
     "—":   0.20,
 }
-DEFAULT_PAUSE_S = 0.20  # if a segment has no terminator
+DEFAULT_PAUSE_S = 0.20
 
-SAMPLE_RATE = 24000
+WHISPER_SAMPLE_RATE = 16000  # final WAV format for faster-whisper
 
 FFMPEG = os.environ.get("FFMPEG_BIN", "ffmpeg")
 FFPROBE = os.environ.get("FFPROBE_BIN", "ffprobe")
 
-_pipeline = None
-_voice_cache: dict[str, torch.Tensor] = {}
 
-# Pre-compiled regexes
-# Bracket tags ([soft], [excited], etc.) are stripped silently — Kokoro v1.0
-# does not honor them; if they reach Kokoro the literal word inside gets spoken.
+# ---------- Regex + abbreviation table ----------
+
 _BRACKET_TAG_RE = re.compile(r"\[[^\]]*\]\s*")
-# Terminator match: `...` (2+ periods), or a single `.!?—`. Greedy on periods.
 _TERMINATOR_RE = re.compile(r"(\.{2,}|[.!?—])")
 _NUMBER_RE = re.compile(r"\b\d+\b")
-
 _ABBREVIATIONS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bDr\.\s+"), "Doctor "),
     (re.compile(r"\bMr\.\s+"), "Mister "),
@@ -99,46 +102,44 @@ _ABBREVIATIONS: list[tuple[re.Pattern, str]] = [
 ]
 
 
-# ---------- Pipeline + voice loading ----------
+# ---------- Client + credits ----------
 
-def _get_pipeline():
-    global _pipeline
-    if _pipeline is None:
-        print(
-            f"[tts] Initializing Kokoro TTS (voice: {DEFAULT_VOICE}, speed: {DEFAULT_SPEED}).\n"
-            "      First run downloads ~330MB model + spaCy data (1-2 min).",
-            file=sys.stderr,
-        )
-        from kokoro import KPipeline
-        _pipeline = KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M")
-    return _pipeline
+_client: ElevenLabs | None = None
+_silence_cache: dict[int, Path] = {}  # ms → path (per work_dir)
 
 
-def _load_voice_tensor(voice_spec: str) -> torch.Tensor:
-    if voice_spec in _voice_cache:
-        return _voice_cache[voice_spec]
-    pipeline = _get_pipeline()
-    names = [n.strip() for n in voice_spec.split(",") if n.strip()]
-    if not names:
-        raise ValueError(f"Empty voice spec: {voice_spec!r}")
-    if len(names) == 1:
-        tensor = pipeline.load_single_voice(names[0])
-    else:
-        tensors = [pipeline.load_single_voice(n) for n in names]
-        tensor = torch.mean(torch.stack(tensors), dim=0)
-        print(
-            f"[tts] Blending {len(names)} voices with equal weights: "
-            f"{', '.join(names)}",
-            file=sys.stderr,
-        )
-    _voice_cache[voice_spec] = tensor
-    return tensor
+def _get_client() -> ElevenLabs:
+    global _client
+    if _client is None:
+        key = os.environ.get("ELEVENLABS_API_KEY")
+        if not key:
+            raise SystemExit(
+                "ERROR: ELEVENLABS_API_KEY not set.\n"
+                "  Get a free key at https://elevenlabs.io/app/settings/api-keys\n"
+                "  Then add to .env:  ELEVENLABS_API_KEY=your-key-here"
+            )
+        _client = ElevenLabs(api_key=key)
+    return _client
 
 
-def section_gap_seconds(section_idx: int) -> float:
-    if section_idx < len(INTER_SECTION_SILENCES_S):
-        return INTER_SECTION_SILENCES_S[section_idx]
-    return INTER_SECTION_SILENCES_S[-1]
+def resolve_voice(voice: str) -> str:
+    """Accept either a friendly name (Brian, Bill, ...) or a raw voice_id."""
+    return VOICES.get(voice, voice)
+
+
+def get_credit_balance() -> tuple[int | None, int | None]:
+    """Return (used, limit) from the ElevenLabs subscription endpoint."""
+    try:
+        info = _get_client().user.get()
+        sub = getattr(info, "subscription", None)
+        if sub is None:
+            return None, None
+        used = getattr(sub, "character_count", None)
+        limit = getattr(sub, "character_limit", None)
+        return used, limit
+    except Exception as e:
+        print(f"[tts] (credit balance unavailable: {e})", file=sys.stderr)
+        return None, None
 
 
 # ---------- Text preprocessing ----------
@@ -150,7 +151,6 @@ def _expand_abbreviations(text: str) -> str:
 
 
 def _expand_numbers(text: str) -> str:
-    """Convert standalone integers up to 100 into words (per the project rule)."""
     def repl(m: re.Match) -> str:
         try:
             n = int(m.group())
@@ -165,15 +165,13 @@ def _expand_numbers(text: str) -> str:
 def _apply_pronunciation_hints(text: str, hints: dict[str, str] | None) -> str:
     if not hints:
         return text
-    for word, phon in hints.items():
-        text = re.sub(
-            rf"\b{re.escape(word)}\b", phon, text, flags=re.IGNORECASE
-        )
+    for w, p in hints.items():
+        text = re.sub(rf"\b{re.escape(w)}\b", p, text, flags=re.IGNORECASE)
     return text
 
 
 def preprocess(text: str, hints: dict[str, str] | None) -> str:
-    """Run all text preprocessing (numbers, abbreviations, pronunciation hints)."""
+    text = _BRACKET_TAG_RE.sub("", text)
     text = _expand_abbreviations(text)
     text = _expand_numbers(text)
     text = _apply_pronunciation_hints(text, hints)
@@ -189,169 +187,257 @@ def _canonical_terminator(raw: str) -> str:
 
 
 def parse_segments(text: str) -> list[dict]:
-    """Split a section into TTS segments.
-
-    Each segment dict carries:
-      - text:       the trimmed spoken text, ending with its punctuation
-      - terminator: canonical terminator (`.`, `?`, `!`, `...`, or `—`)
-
-    Any `[...]` bracket tags are stripped silently up front — Kokoro v1.0 does
-    not honor them; if left in, the literal word inside would be spoken aloud.
-    """
-    # Strip any bracket tags before parsing
+    """Split a section into per-sentence segments. Each dict has `text` (with
+    trailing punctuation reattached for ElevenLabs prosody) and `terminator`
+    (canonical: `.`, `?`, `!`, `...`, or `—`)."""
     text = _BRACKET_TAG_RE.sub("", text)
-
-    # Split with capture so terminators are preserved in the result list
     parts = _TERMINATOR_RE.split(text)
-    # parts = [text0, term0, text1, term1, ..., trailing_or_empty]
-
     segments: list[dict] = []
     i = 0
     while i < len(parts):
-        raw_text = parts[i]
-        raw_terminator = parts[i + 1] if i + 1 < len(parts) else None
-        terminator = _canonical_terminator(raw_terminator) if raw_terminator else None
-
-        seg_text = re.sub(r"\s{2,}", " ", raw_text).strip()
+        seg_text = re.sub(r"\s{2,}", " ", parts[i]).strip()
+        raw_term = parts[i + 1] if i + 1 < len(parts) else None
         if not seg_text:
             i += 2
             continue
-
-        # Reattach the terminator so Kokoro sees punctuation-driven intonation cues
-        if terminator:
-            spoken = seg_text + terminator
+        if raw_term:
+            spoken = seg_text + raw_term
+            terminator = _canonical_terminator(raw_term)
         else:
             spoken = seg_text + "."
-            terminator = "."  # treat as period for pause lookup
-
-        segments.append({
-            "text": spoken,
-            "terminator": terminator,
-        })
+            terminator = "."
+        segments.append({"text": spoken, "terminator": terminator})
         i += 2
-
     return segments
 
 
-# ---------- Synthesis ----------
+# ---------- Audio helpers (ffmpeg subprocess) ----------
 
-def _to_float32(audio) -> np.ndarray:
-    if hasattr(audio, "detach"):
-        audio = audio.detach()
-    if hasattr(audio, "cpu"):
-        audio = audio.cpu()
-    if hasattr(audio, "numpy"):
-        audio = audio.numpy()
-    arr = np.asarray(audio)
-    if arr.dtype != np.float32:
-        arr = arr.astype(np.float32, copy=False)
-    return arr
+def _ffprobe_duration(path: Path) -> float:
+    out = subprocess.check_output(
+        [
+            FFPROBE, "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", str(path),
+        ],
+        text=True,
+    )
+    return float(out.strip())
 
+
+def _silence_mp3(duration_s: float, work_dir: Path) -> Path:
+    """Generate (and cache) a silence MP3 of the requested duration, matching
+    ElevenLabs' 44.1kHz/128kbps stereo MP3 format so concat doesn't re-encode."""
+    key = max(1, round(duration_s * 1000))
+    cached = _silence_cache.get(key)
+    if cached and cached.exists():
+        return cached
+    silence_dir = work_dir / "silence"
+    silence_dir.mkdir(exist_ok=True)
+    out = silence_dir / f"silence_{key}ms.mp3"
+    subprocess.run(
+        [
+            FFMPEG, "-y", "-f", "lavfi",
+            "-i", "anullsrc=r=44100:cl=stereo",
+            "-t", f"{duration_s:.3f}",
+            "-c:a", "libmp3lame", "-b:a", "128k",
+            str(out),
+        ],
+        check=True, capture_output=True,
+    )
+    _silence_cache[key] = out
+    return out
+
+
+# ---------- ElevenLabs call ----------
+
+def _tts_call(text: str, voice_id: str) -> bytes:
+    """Single ElevenLabs text_to_speech.convert call. Returns MP3 bytes."""
+    client = _get_client()
+    audio_iter = client.text_to_speech.convert(
+        voice_id=voice_id,
+        model_id=DEFAULT_MODEL,
+        text=text,
+        voice_settings=VOICE_SETTINGS,
+        output_format=DEFAULT_OUTPUT_FORMAT,
+    )
+    return b"".join(audio_iter)
+
+
+# ---------- Top-level synthesize ----------
 
 def synthesize(
     sections: list[str],
     voice: str,
     work_dir: Path,
-    speed: float = DEFAULT_SPEED,
     print_input: bool = False,
     pronunciation_hints_by_section: list[dict[str, str]] | None = None,
 ) -> tuple[Path, list[dict]]:
-    """Synthesize sections with naturalness preprocessing + per-segment TTS.
+    """Synthesize all sections via ElevenLabs and return (wav_path, section_bounds).
 
-    `pronunciation_hints_by_section[i]` is the optional `{word: phonetic}` map
-    applied to section i before TTS. Missing entries default to no hints.
-
-    Returns (wav_path, [{'start', 'end'} per section]).
+    Each sentence inside a section is its own API call, so punctuation cleanly
+    drives prosody and silences are inserted between segments deterministically.
     """
-    pipeline = _get_pipeline()
-    voice_tensor = _load_voice_tensor(voice)
+    voice_id = resolve_voice(voice)
+    voice_label = voice if voice in VOICES else f"voice_id={voice}"
+    print(f"[tts] voice: {voice_label}  model: {DEFAULT_MODEL}", file=sys.stderr)
 
     hints_list = pronunciation_hints_by_section or [{}] * len(sections)
     if len(hints_list) < len(sections):
         hints_list = list(hints_list) + [{}] * (len(sections) - len(hints_list))
 
-    if print_input:
-        print("[tts] === text sent to Kokoro (one call per SEGMENT) ===", file=sys.stderr)
+    # Preprocess all sections + parse into segments up front (lets us preview
+    # total char count BEFORE we hit the API).
+    preprocessed: list[list[dict]] = []
+    total_chars_est = 0
+    for i, raw in enumerate(sections):
+        pre = preprocess(raw, hints_list[i])
+        segs = parse_segments(pre)
+        if not segs:
+            raise RuntimeError(f"Section[{i}] produced 0 segments: {raw!r}")
+        preprocessed.append(segs)
+        total_chars_est += sum(len(s["text"]) for s in segs)
 
-    section_arrays: list[np.ndarray] = []
-    for i, section_text in enumerate(sections):
-        pre = preprocess(section_text, hints_list[i])
-        segments = parse_segments(pre)
-        if not segments:
-            raise RuntimeError(
-                f"Section[{i}] produced 0 segments. Raw: {section_text!r}"
-            )
-
-        if print_input:
+    # Credit pre-flight
+    used_before, limit = get_credit_balance()
+    if limit is not None and used_before is not None:
+        remaining = limit - used_before
+        print(
+            f"[tts] credits: {used_before:,}/{limit:,} used "
+            f"({remaining:,} chars remaining)",
+            file=sys.stderr,
+        )
+        print(f"[tts] estimated for this reel: ~{total_chars_est:,} chars", file=sys.stderr)
+        if total_chars_est > remaining:
             print(
-                f"[tts] section[{i}]  preprocessed: {pre!r}  "
-                f"→ {len(segments)} segment(s)",
+                f"[tts] WARNING: estimated {total_chars_est:,} chars > "
+                f"{remaining:,} remaining.",
                 file=sys.stderr,
             )
-
-        segment_arrays: list[np.ndarray] = []
-        for j, seg in enumerate(segments):
-            if print_input:
-                print(
-                    f"[tts]   seg[{i}.{j}]: {seg['text']!r}  "
-                    f"term={seg['terminator']!r}",
-                    file=sys.stderr,
+            if sys.stdin.isatty():
+                ans = input("Continue anyway? (y/N) ").strip().lower()
+                if ans != "y":
+                    raise SystemExit("Aborted (insufficient credits).")
+            else:
+                raise SystemExit(
+                    "Aborted (insufficient credits, non-interactive). "
+                    "Re-run from a TTY to override."
                 )
-            chunks: list[np.ndarray] = []
-            for graphemes, phonemes, audio in pipeline(
-                seg["text"], voice=voice_tensor, speed=speed,
-            ):
-                chunks.append(_to_float32(audio))
-                if print_input:
-                    print(
-                        f"[tts]     chunk: graphemes={graphemes!r}  "
-                        f"phonemes={phonemes!r}  samples={len(chunks[-1])}",
-                        file=sys.stderr,
-                    )
-            if not chunks:
-                raise RuntimeError(f"Kokoro produced no audio for segment: {seg!r}")
-            segment_arrays.append(np.concatenate(chunks))
 
-        # Concat segments with punctuation-driven silences
-        pieces: list[np.ndarray] = []
-        for j, (arr, seg) in enumerate(zip(segment_arrays, segments)):
-            pieces.append(arr)
-            if j < len(segment_arrays) - 1:
-                pause = PAUSE_BY_TERMINATOR_S.get(seg["terminator"], DEFAULT_PAUSE_S)
-                pieces.append(np.zeros(int(SAMPLE_RATE * pause), dtype=np.float32))
-        section_arrays.append(np.concatenate(pieces))
+    # Per-segment synthesis
+    work_dir.mkdir(parents=True, exist_ok=True)
+    segments_dir = work_dir / "segments"
+    segments_dir.mkdir(exist_ok=True)
 
     if print_input:
-        print("[tts] === end Kokoro input dump ===", file=sys.stderr)
+        print("[tts] === ElevenLabs input dump ===", file=sys.stderr)
 
-    # Inter-section silences (per-boundary)
-    durations = [len(a) / SAMPLE_RATE for a in section_arrays]
-    pieces: list[np.ndarray] = []
-    for i, arr in enumerate(section_arrays):
-        pieces.append(arr)
-        if i < len(section_arrays) - 1:
-            gap = section_gap_seconds(i)
-            pieces.append(np.zeros(int(SAMPLE_RATE * gap), dtype=np.float32))
-    full_audio = np.concatenate(pieces)
+    section_segment_paths: list[list[Path]] = []
+    total_chars_sent = 0
 
-    raw_wav = work_dir / "voice_24k.wav"
-    sf.write(str(raw_wav), full_audio, SAMPLE_RATE)
+    for i, segs in enumerate(preprocessed):
+        seg_paths: list[Path] = []
+        for j, seg in enumerate(segs):
+            spoken = seg["text"]
+            n_chars = len(spoken)
+            total_chars_sent += n_chars
+            preview = spoken if len(spoken) <= 50 else spoken[:50].rstrip() + "…"
+            print(
+                f"[tts]  s{i}.{j}  ({n_chars:>3} chars)  {preview!r}",
+                file=sys.stderr,
+            )
+            if print_input:
+                print(f"[tts]    full: {spoken!r}", file=sys.stderr)
+            mp3_bytes = _tts_call(spoken, voice_id)
+            out_path = segments_dir / f"s{i}_{j}.mp3"
+            out_path.write_bytes(mp3_bytes)
+            seg_paths.append(out_path)
+        section_segment_paths.append(seg_paths)
 
-    combined_wav = work_dir / "voice.wav"
+    if print_input:
+        print("[tts] === end input dump ===", file=sys.stderr)
+
+    # Build concat list: alternate segment MP3 with appropriate silence
+    concat_lines: list[str] = []
+    per_segment_durations: list[list[float]] = []
+
+    for i, (seg_paths, segs) in enumerate(zip(section_segment_paths, preprocessed)):
+        section_durs: list[float] = []
+        for j, (path, seg) in enumerate(zip(seg_paths, segs)):
+            concat_lines.append(f"file '{path.resolve()}'")
+            section_durs.append(_ffprobe_duration(path))
+            if j < len(seg_paths) - 1:
+                pause = PAUSE_BY_TERMINATOR_S.get(seg["terminator"], DEFAULT_PAUSE_S)
+                concat_lines.append(f"file '{_silence_mp3(pause, work_dir).resolve()}'")
+        per_segment_durations.append(section_durs)
+
+        if i < len(section_segment_paths) - 1:
+            gap = (
+                INTER_SECTION_SILENCES_S[i]
+                if i < len(INTER_SECTION_SILENCES_S)
+                else INTER_SECTION_SILENCES_S[-1]
+            )
+            concat_lines.append(f"file '{_silence_mp3(gap, work_dir).resolve()}'")
+
+    concat_txt = work_dir / "voice_concat.txt"
+    concat_txt.write_text("\n".join(concat_lines) + "\n")
+
+    voice_mp3 = work_dir / "voice.mp3"
     subprocess.run(
         [
-            FFMPEG, "-y", "-i", str(raw_wav),
-            "-ar", "16000", "-ac", "1",
-            str(combined_wav),
+            FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_txt),
+            "-c:a", "libmp3lame", "-b:a", "128k",
+            str(voice_mp3),
         ],
         check=True, capture_output=True,
     )
 
+    voice_wav = work_dir / "voice.wav"
+    subprocess.run(
+        [
+            FFMPEG, "-y", "-i", str(voice_mp3),
+            "-ar", str(WHISPER_SAMPLE_RATE), "-ac", "1",
+            str(voice_wav),
+        ],
+        check=True, capture_output=True,
+    )
+
+    # Section bounds: cumulative time, excluding inter-section silence
     bounds: list[dict] = []
     t = 0.0
-    for i, dur in enumerate(durations):
-        bounds.append({"start": t, "end": t + dur})
-        t += dur
-        if i < len(durations) - 1:
-            t += section_gap_seconds(i)
-    return combined_wav, bounds
+    for i, (seg_paths, segs) in enumerate(zip(section_segment_paths, preprocessed)):
+        section_start = t
+        for j, seg in enumerate(segs):
+            t += per_segment_durations[i][j]
+            if j < len(seg_paths) - 1:
+                t += PAUSE_BY_TERMINATOR_S.get(seg["terminator"], DEFAULT_PAUSE_S)
+        bounds.append({"start": section_start, "end": t})
+        if i < len(section_segment_paths) - 1:
+            t += (
+                INTER_SECTION_SILENCES_S[i]
+                if i < len(INTER_SECTION_SILENCES_S)
+                else INTER_SECTION_SILENCES_S[-1]
+            )
+
+    # Post-render credit summary
+    used_after, _limit_after = get_credit_balance()
+    if used_after is not None and used_before is not None:
+        delta = used_after - used_before
+        print(
+            f"[tts] credits used by this reel: {delta:,} chars  "
+            f"(sent: {total_chars_sent:,})",
+            file=sys.stderr,
+        )
+        if limit is not None:
+            print(
+                f"[tts] credits remaining: {limit - used_after:,}/{limit:,}",
+                file=sys.stderr,
+            )
+
+    return voice_wav, bounds
+
+
+def section_gap_seconds(section_idx: int) -> float:
+    """Used by reel.py to align the video timeline with the inter-section silences."""
+    if section_idx < len(INTER_SECTION_SILENCES_S):
+        return INTER_SECTION_SILENCES_S[section_idx]
+    return INTER_SECTION_SILENCES_S[-1]
