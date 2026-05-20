@@ -70,57 +70,57 @@ use the `queries` array.
 >
 > **Voice & style — this is the most important section. Read it twice.**
 >
-> The narrator should sound like a knowledgeable friend leaning in,
-> *not* a textbook. The TTS engine adds breath/pause between every
-> sentence based on the punctuation you use — so write copy that *uses*
-> punctuation as delivery, not as grammar.
+> The narrator should sound like a knowledgeable friend explaining the
+> remedy at coffee, *not* a textbook AND *not* a stuttering bullet list.
+> Fragments are a flavor, not the whole dish.
 >
-> 1. **Radical sentence shortening.** Most sentences should be 3–8 words.
->    Any sentence over 12 words must be split.
+> 1. **Fragments are strategic, not constant.**
+>    - **Hook**: fragments work great here — they punch
+>    - **Tips**: mostly *full sentences* with natural flow; **at most 1**
+>      fragment per tip, used for emphasis
+>    - **CTA**: 1–2 fragments OK for a dramatic ending
 >
->    ❌ "Drink twelve ounces of lemon water within ten minutes of waking. It
->        rehydrates your cells and gives a fast vitamin C boost."
->    ✅ "Drink lemon water. Twelve ounces. Right when you wake up. It
->        rehydrates your cells... and gives a vitamin C boost."
+>    ❌ Choppy (too many fragments back-to-back):
+>      `"Lemon water. First thing. It rehydrates fast... and gives you vitamin C."`
+>    ✅ Natural flow:
+>      `"Drink lemon water first thing in the morning. It rehydrates your
+>        cells fast and gives you a real vitamin C boost."`
+>    ✅ Natural flow + ONE emphasis fragment via em-dash:
+>      `"Drink lemon water as soon as you wake up — twelve ounces. It
+>        rehydrates your cells and delivers a vitamin C boost fast."`
 >
-> 2. **Use fragments like a real person.** Spoken English is full of
->    fragments. So is good reel copy.
+> 2. **Sentence length sweet spot.**
+>    - Each tip is 2–3 sentences total (not 4–5 fragments).
+>    - Each sentence: **8–15 words** is the sweet spot.
+>    - Avoid both extremes — no run-ons (>20 words) AND no machine-gun
+>      fragments (<4 words in a row).
 >
->    ✅ `"Tired every morning? Same."`
->    ✅ `"Three tips. Try them tomorrow."`
->    ✅ `"Lemon water. First thing. Trust me."`
->
-> 3. **Strategic ellipses (...) for rhythm and weight.** Especially powerful:
->    - Before the punchline of a tip
->    - Between cause and effect
->    - In the CTA for emotional weight
->
->    The TTS engine adds an **800 ms** pause after `...`, so use it
->    deliberately, not decoratively.
->
->    ✅ "Splash cold water on your face... and feel your whole body wake up."
->    ✅ "Save this tonight... your future self will thank you."
->
-> 4. **Conversational phrasing, not textbook.** Replace clinical phrasing
->    with how a friend would explain it over coffee.
->
+> 3. **Conversational phrasing, not textbook.**
 >    ❌ "It activates your vagus nerve and triggers a full body wake-up."
->    ✅ "It wakes up your nervous system. Fast."
+>    ✅ "The cold shock activates your vagus nerve and triggers a full-body wake-up."
 >
 >    ❌ "Light on your eyes resets your circadian rhythm and shuts off melatonin."
->    ✅ "Sunlight tells your brain... it's time to wake up."
+>    ✅ "The light on your eyes resets your circadian rhythm and shuts off melatonin."
 >
-> 5. **Pronoun variety.** Don't start every sentence with the same word.
->    Mix "you", "your body", "this", "it" — and use fragments to skip the
->    subject entirely. Variety in sentence-openers is what separates human
->    speech from AI slop.
+> 4. **Strategic ellipses (...).** The TTS engine adds a 400 ms pause after
+>    `...`, so use it deliberately, not decoratively. Maybe one per reel,
+>    usually in the CTA or before a tip's punchline. Don't sprinkle them.
 >
-> 6. **Soft / excited delivery comes from STRUCTURE, not tags.** The TTS
->    engine does NOT support bracket cues like `[soft]` or `[excited]` —
->    they would be read aloud literally. Get those effects by:
->    - Soft / intimate → short sentences + ellipses ("Honey. One spoon. Trust me…")
->    - Excited / punchy → exclamation marks + fragments ("It works! Try it!")
->    - Authoritative → declarative sentences + periods ("This is why.")
+> 5. **Em-dashes (—).** Even more sparingly — max 1 per reel. Great for
+>    one emphasis fragment inside an otherwise flowing tip.
+>
+> 6. **Patterns that kill the flow — avoid:**
+>    - `"It [verb]. And [verb]."` — chops naturally connected ideas
+>    - Three-word fragments back to back
+>    - Starting every tip with a bare noun phrase ("Lemon water." /
+>      "Morning sunlight." / "Cold water.")
+>    - Em-dashes in multiple sentences (one per reel max)
+>    - Bracket cues like `[soft]` / `[excited]` — TTS doesn't honor them,
+>      they'd be read aloud as the word "soft" / "excited"
+>
+> 7. **Pronoun variety.** Don't start every sentence with the same word.
+>    Mix "you", "your body", "this", "it" — what separates real speech
+>    from AI slop is variety in sentence openers.
 >
 > **Hard rules (validator enforces):**
 >
@@ -187,7 +187,7 @@ use the `queries` array.
 > ```json
 > {
 >   "hook": {
->     "text": "Sore throat? Try this... before reaching for medicine.",
+>     "text": "Got a sore throat? Skip the pharmacy. Try these three natural remedies first.",
 >     "queries": [
 >       "person touching throat closeup",
 >       "woman with sore throat hand on neck",
@@ -196,7 +196,7 @@ use the `queries` array.
 >   },
 >   "tips": [
 >     {
->       "text": "Honey. One spoon. It coats your throat... and kills bacteria naturally.",
+>       "text": "Mix one spoon of raw honey with warm water and drink slowly. The honey coats your throat and kills bacteria naturally.",
 >       "queries": [
 >         "honey drizzling spoon macro",
 >         "raw honey jar wooden table",
@@ -204,7 +204,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Salt water gargle. Warm. Three times a day. The salt pulls out inflammation.",
+>       "text": "Gargle warm salt water three times a day for thirty seconds each. The salt pulls inflammation right out of the tissue.",
 >       "queries": [
 >         "salt being poured spoon",
 >         "person gargling slow motion",
@@ -212,7 +212,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Ginger tea with lemon. Sip it slowly. It reduces swelling fast.",
+>       "text": "Sip ginger tea with fresh lemon throughout the day. It reduces swelling and soothes the burn fast.",
 >       "queries": [
 >         "ginger tea pouring cup",
 >         "lemon slice squeezed closeup",
@@ -221,7 +221,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Try this tonight... and wake up feeling better.",
+>     "text": "Try this tonight — you'll wake up feeling so much better.",
 >     "queries": [
 >       "cozy bed morning light",
 >       "person stretching getting out of bed"
@@ -235,7 +235,7 @@ use the `queries` array.
 > ```json
 > {
 >   "hook": {
->     "text": "Waking up tired every day? Three fixes. They actually work.",
+>     "text": "Waking up tired every morning? Here are three morning boosts that actually fix it.",
 >     "queries": [
 >       "tired woman rubbing eyes morning bed closeup",
 >       "woman yawning slow motion closeup",
@@ -244,7 +244,7 @@ use the `queries` array.
 >   },
 >   "tips": [
 >     {
->       "text": "Lemon water. First thing. It rehydrates fast... and gives you vitamin C.",
+>       "text": "Drink twelve ounces of lemon water within ten minutes of waking up. It rehydrates your cells fast and gives you a clean vitamin C boost.",
 >       "queries": [
 >         "person pouring lemon water glass macro",
 >         "hand squeezing lemon into glass slow motion",
@@ -252,7 +252,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Morning sunlight. Ten minutes. It tells your brain... it's time to wake up.",
+>       "text": "Step outside for ten minutes of morning sunlight right after waking. The light on your eyes resets your circadian rhythm and shuts off melatonin.",
 >       "queries": [
 >         "person stretching arms sunrise outdoor",
 >         "morning sunlight through window face closeup",
@@ -260,7 +260,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Cold water on your face. Fifteen seconds. It activates your whole nervous system.",
+>       "text": "Splash cold water on your face for fifteen seconds straight. The shock activates your vagus nerve and triggers a full-body wake-up.",
 >       "queries": [
 >         "woman splashing face cold water",
 >         "person washing face bathroom morning",
@@ -269,7 +269,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Save this. Try it tomorrow... your body will thank you.",
+>     "text": "Save this for tomorrow morning — your body will thank you.",
 >     "queries": [
 >       "person stretching getting out of bed morning",
 >       "morning routine planner notebook hands"
@@ -283,7 +283,7 @@ use the `queries` array.
 > ```json
 > {
 >   "hook": {
->     "text": "Bloated all the time? Here's what's really going on.",
+>     "text": "Bloated all the time? Here's what's actually causing it — and how to fix it fast.",
 >     "queries": [
 >       "person holding stomach uncomfortable closeup",
 >       "bloated belly hand on abdomen",
@@ -292,7 +292,7 @@ use the `queries` array.
 >   },
 >   "tips": [
 >     {
->       "text": "Ditch the soda. Even diet. The bubbles trap gas in your gut.",
+>       "text": "Cut out all soda, even diet versions. The carbonation traps gas in your gut and makes bloating way worse.",
 >       "queries": [
 >         "carbonated drink poured into glass macro",
 >         "soda bottle on table closeup",
@@ -300,7 +300,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Chew slower. Way slower. Half your bloating comes from swallowed air.",
+>       "text": "Chew each bite of food at least twenty times before swallowing. Half your bloating comes from air you're swallowing without realizing it.",
 >       "queries": [
 >         "person eating slowly closeup mouth",
 >         "fork lifting food macro",
@@ -308,7 +308,7 @@ use the `queries` array.
 >       ]
 >     },
 >     {
->       "text": "Try peppermint tea. After meals. It relaxes your digestive muscles... and releases gas.",
+>       "text": "Drink peppermint tea after every meal. It relaxes your digestive muscles and helps trapped gas release naturally.",
 >       "queries": [
 >         "peppermint leaves macro",
 >         "person pouring tea cozy kitchen",
@@ -317,7 +317,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Pick one. Start today. Feel the difference in a week.",
+>     "text": "Pick just one and start today — you'll feel the difference in a week.",
 >     "queries": [
 >       "person preparing healthy meal kitchen",
 >       "wellness routine morning hands"
