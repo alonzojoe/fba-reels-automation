@@ -17,7 +17,7 @@ python3 reel.py --script script.json
 ## What it does
 
 1. **Script** — *(you provide)* a JSON file with hook + 3 tips + CTA. Each section has a `queries` list of 2–3 Pexels search terms; the renderer rotates through them as it cuts.
-2. **Voiceover** — **Kokoro TTS** (82M-param open-source model, runs on CPU, MIT license). Voice is hardcoded to `am_michael` for brand consistency, played at `speed=0.95` with sentence-level micro-pauses for breathing rhythm. Override only when prototyping with `--voice`.
+2. **Voiceover** — **ElevenLabs API** (`eleven_multilingual_v2` model). Default voice `liam` (expressive male narrator); per-segment synthesis so punctuation drives intonation. Override with `--voice <name|voice_id>` ([catalog](#voice-brand-locked)).
 3. **Word timestamps** — `faster-whisper` (`base` model, CPU) produces per-word timing.
 4. **Hook + body with the 3-second rule** — the hook is cut into 1.5–2 s shots with a Ken Burns 1.0 → 1.08 zoom (highest-retention real estate in a Reel). Body sections cut into 2.5–3 s shots. Within each section, transitions vary: 60% fade / 25% zoom-in / 15% slide (deterministic by cut index, so re-renders match). Hard cuts between sections.
 5. **Captions** — ASS subtitle file, bold green (`#00FF66`) word-by-word with Gaussian-blurred shadow.
@@ -47,18 +47,20 @@ brew install python@3.12
 # 3. Create venv and install deps
 /usr/local/opt/python@3.12/bin/python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-# Note: first install pulls in torch (~250MB) for Kokoro. Total dep size ~1GB.
 
 # 4. Configure environment
 cp .env.example .env
 # Then edit .env:
-#   PEXELS_API_KEY=...   (https://www.pexels.com/api/)
+#   PEXELS_API_KEY=...        (https://www.pexels.com/api/)
+#   ELEVENLABS_API_KEY=...    (https://elevenlabs.io/app/settings/api-keys)
 #   FFMPEG_BIN=/usr/local/opt/ffmpeg-full/bin/ffmpeg     (only if not on PATH)
 #   FFPROBE_BIN=/usr/local/opt/ffmpeg-full/bin/ffprobe   (only if not on PATH)
 ```
 
-**First run** downloads the Kokoro model (~330 MB) and a spaCy English model.
-This takes 1–2 minutes — subsequent runs use the cache.
+**ElevenLabs free tier** = 10,000 characters/month, enough for roughly 25–30
+reels (~350 spoken characters each). The pipeline prints a credit usage
+summary after every render and warns interactively if a single reel would
+exceed the remaining balance.
 
 ## Workflow
 
@@ -99,11 +101,11 @@ For symptoms or body-related content, write queries that **show body parts** —
 # Skip background music
 .venv/bin/python reel.py --script script.json --no-music
 
-# Custom voice, outro text, outro color
+# Custom voice, outro text, text color
 .venv/bin/python reel.py --script script.json \
-    --voice am_michael \
+    --voice Daniel \
     --outro-text "SAVE THIS|FOR LATER" \
-    --outro-color "#FF3366"
+    --text-color "#FF3366"
 
 # Skip the outro entirely
 .venv/bin/python reel.py --script script.json --no-outro
@@ -115,7 +117,7 @@ For symptoms or body-related content, write queries that **show body parts** —
 | ----------------------- | ----------------------------- | -------------------------------------------------------------------- |
 | `--script PATH`         | *(required)*                  | Path to the script JSON file.                                        |
 | `--out PATH`            | `out/final.mp4`               | Output MP4 path.                                                     |
-| `--voice NAME`          | `am_michael`                  | Kokoro voice. Brand voice is locked — override only when prototyping. |
+| `--voice NAME|ID`       | `liam`                        | ElevenLabs voice name (case-insensitive) or raw voice_id ([catalog](#voice-brand-locked)). |
 | `--music PATH`          | auto from `bg-music/`         | Background music file. Mixed at ~-22 dB, looped, faded out at end.   |
 | `--no-music`            | off                           | Skip music even if files exist in `bg-music/`.                       |
 | `--no-outro`            | off                           | Skip the 2.5 s outro overlay.                                        |
@@ -124,45 +126,65 @@ For symptoms or body-related content, write queries that **show body parts** —
 | `--dry-run`             | off                           | Validate script + Pexels search + cut plan only. No render.          |
 | `--keep-work`           | off                           | Keep `work/<ts>/` after success.                                     |
 
-## Voice (brand-locked blend)
+## Voice (brand-locked)
 
-The default voice is a **custom blend** of three Kokoro voices, averaged in
-embedding space with equal weights: `af_alloy + am_echo + am_fenrir`. The blend
-was auditioned on the Kokoro web demo and chosen for a warm-but-authoritative
-narrator quality — keep this consistent across all uploads for audience
-recognition. The blend constant lives in
-[`pipeline/tts.py`](pipeline/tts.py).
+The default voice is **`liam`** — an expressive American male narrator that
+delivers more inflection than the flatter "broadcaster" voices. The brand
+voice is intentionally consistent across every reel for audience recognition.
+Override only when A/B-testing.
+
+| Friendly name      | Voice ID                       | Notes                             |
+| ------------------ | ------------------------------ | --------------------------------- |
+| `liam` *(default)* | `TX3LPaxmHKxFdv7VOQHJ`         | Expressive American male           |
+| `josh`             | `TxGEqnHWrfWFTfGW9XjX`         | Deep, mature narrator             |
+| `charlie`          | `IKne3meq5aSn9XLyUdCD`         | Casual Australian male            |
+| `callum`           | `N2lVS1w4EtoT3dr4eOWO`         | Intense, dramatic                 |
+| `sam`              | `yoZ06aMxZJJ28mfd3POQ`         | Raspy, real-sounding              |
+| `brian`            | `nPczCjzI2devNBz1zQrb`         | Warm, mature                      |
+| `bill`             | `pqHfZKP75CvOlQylNhV4`         | Authoritative, deep               |
+| `adam`             | `pNInz6obpgDQGcFmaJgB`         | Classic narrator                  |
+
+Names are case-insensitive — `--voice Liam`, `--voice liam`, and
+`--voice LIAM` all resolve identically. You can also pass a raw `voice_id` for
+any ElevenLabs voice in your account.
+
+```bash
+# Default (liam)
+python reel.py --script script.json
+
+# Switch voice by friendly name
+python reel.py --script script.json --voice callum
+
+# Or by raw voice_id
+python reel.py --script script.json --voice ErXwobaYiN019PkySvjV
+```
+
+Voice and pacing knobs live in [`pipeline/tts.py`](pipeline/tts.py):
 
 ```python
 # pipeline/tts.py
-DEFAULT_VOICE_BLEND = ["af_alloy", "am_echo", "am_fenrir"]
-DEFAULT_SPEED = 1.0
+DEFAULT_VOICE = "liam"
+DEFAULT_MODEL = "eleven_multilingual_v2"   # better emotional range than turbo
+VOICE_SETTINGS = VoiceSettings(
+    stability=0.35,        # lower = more emotional variation
+    similarity_boost=0.80, # keep voice identity stable
+    style=0.55,            # higher = more dramatic narrator energy
+    use_speaker_boost=True,
+)
 ```
 
-Pacing is `speed=1.0` (Kokoro's natural pace — matches the kokoroai.org web
-demo). A ~140 ms micro-pause is inserted between sentences for natural
-breathing. Inter-section silences are **400 ms** after the hook, **250 ms**
-between tips, and **500 ms** before the CTA for editorial rhythm.
+**Model trade-off.** `eleven_multilingual_v2` costs ~2× the credits per
+character vs `eleven_turbo_v2_5`. At our ~350 chars/reel you still get
+~12–15 reels per month on the free tier. If you want to maximize quantity
+over quality, swap `DEFAULT_MODEL` back to turbo.
 
-The `--voice` CLI flag accepts either a single Kokoro voice name (`--voice am_michael`)
-or a comma-separated blend (`--voice af_alloy,am_echo,am_fenrir`). Blends are
-averaged by `torch.mean(torch.stack(voice_tensors), dim=0)` — `pipeline/tts.py`
-caches loaded voice tensors so repeated calls inside one process don't repeat
-the load.
+Snappy Reels timings: `.` 200 ms · `?/!` 250 ms · `...` 400 ms · `—` 200 ms.
+Section gaps tapered: hook→tip1 250 ms, tip→tip 150 ms, tip3→cta 300 ms.
 
-```bash
-# Default — locked brand blend
-python reel.py --script script.json
-
-# Single voice for testing
-python reel.py --script script.json --voice am_michael
-
-# Custom blend
-python reel.py --script script.json --voice "am_michael,am_fenrir"
-
-# Override speed
-python reel.py --script script.json --speed 1.0
-```
+**Credit usage.** The pipeline prints a credit balance check before every
+render and a "used by this reel" summary after. If your estimated character
+count exceeds the remaining free-tier balance, you get a `[tts] WARNING` and
+an interactive `Continue anyway? (y/N)` prompt.
 
 ## The 3-second rule (and the hook gets it harder)
 
@@ -228,7 +250,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the commit-message conventions (conve
 reel.py                          # CLI entry, orchestrates the 5 render stages
 pipeline/
   script.py                      # Load + validate the script JSON
-  tts.py                         # Kokoro TTS         → voice.wav (24kHz → 16kHz mono)
+  tts.py                         # ElevenLabs API     → per-segment MP3 → 16kHz mono voice.wav
   transcribe.py                  # voice.wav          → faster-whisper → word timestamps
   footage.py                     # Plan cuts + parallel Pexels download + video_id cache
   captions.py                    # word timestamps    → captions.ass (yellow body, green outro)
@@ -260,5 +282,5 @@ same script skips the network.
 - **Pexels `0 results`** — query in your script is too obscure. Edit `script.json` to broaden the `search_query`.
 - **`[footage] WARN: limited Pexels variety`** — Pexels returned fewer unique videos than needed for that query. The reel still renders but reuses clips (never adjacent). Edit the query in `script.json` for more variety.
 - **`Filter not found` / caption text missing** — your ffmpeg lacks libass; install `ffmpeg-full` (see [Setup](#setup)).
-- **First Kokoro run is slow** — downloading ~330 MB Kokoro model + ~12 MB spaCy English model. Cached afterwards.
-- **Kokoro warns "PyTorch >= 2.4 is required"** — pin `transformers<5.0` in `requirements.txt` (already done). Intel macOS is stuck on torch 2.2 because no newer x86 wheel exists.
+- **`ELEVENLABS_API_KEY not set`** — fill `.env`. Free key at https://elevenlabs.io/app/settings/api-keys.
+- **`Aborted (insufficient credits...)`** — your free-tier balance is below the reel's estimated character count. Wait for the monthly reset or upgrade.
