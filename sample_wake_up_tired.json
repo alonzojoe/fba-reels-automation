@@ -1,6 +1,6 @@
 {
   "hook": {
-    "text": "[soft] Do you wake up tired every morning? Here are three boosts that actually work.",
+    "text": "Waking up tired every day? Three fixes. They actually work.",
     "queries": [
       "tired woman rubbing eyes morning bed closeup",
       "woman yawning slow motion closeup",
@@ -9,7 +9,7 @@
   },
   "tips": [
     {
-      "text": "Drink twelve ounces of lemon water within ten minutes of waking. It rehydrates your cells and gives a fast vitamin C boost.",
+      "text": "Lemon water. First thing. It rehydrates fast... and gives you vitamin C.",
       "queries": [
         "person pouring lemon water glass macro",
         "hand squeezing lemon into glass slow motion",
@@ -17,7 +17,7 @@
       ]
     },
     {
-      "text": "Step outside for ten minutes of morning sunlight. Light on your eyes resets your circadian rhythm and shuts off melatonin.",
+      "text": "Morning sunlight. Ten minutes. It tells your brain... it's time to wake up.",
       "queries": [
         "person stretching arms sunrise outdoor",
         "morning sunlight through window face closeup",
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "text": "Splash cold water on your face for fifteen seconds. The shock activates your vagus nerve and triggers a full body wake-up.",
+      "text": "Cold water on your face. Fifteen seconds. It activates your whole nervous system.",
       "queries": [
         "woman splashing face cold water",
         "person washing face bathroom morning",
@@ -34,7 +34,7 @@
     }
   ],
   "cta": {
-    "text": "Save this for tomorrow morning... your future self will thank you.",
+    "text": "Save this. Try it tomorrow... your body will thank you.",
     "queries": [
       "person stretching getting out of bed morning",
       "morning routine planner notebook hands"
