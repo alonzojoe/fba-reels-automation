@@ -18,9 +18,13 @@ from pathlib import Path
 _LEGACY_QUERY_KEYS = ("queries", "search_query", "query")
 
 # Punctuation validation
-_TERMINAL_PUNCT = (".", "!", "?")
+_TERMINAL_PUNCT = (".", "!", "?", "—")
 _RUNON_WORD_THRESHOLD = 25
-_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_MAX_SENTENCES_PER_SECTION = 2
+# A sentence terminator for counting purposes (em-dash is mid-sentence)
+_SENTENCE_SPLIT_RE = re.compile(r"(?:\.{2,}|[.!?])\s+")
+# Inline cue markers (e.g. "[soft]", "[excited]") that we strip before counting words
+_INLINE_CUE_RE = re.compile(r"\[(\w+)\]\s*")
 
 
 def load_script(path: Path) -> dict:
@@ -46,35 +50,48 @@ def _fail(path: Path, msg: str) -> None:
 def _check_punctuation(path: Path, label: str, text: str) -> None:
     """Enforce the punctuation rules from prompts/script-generation.md.
 
-    Hard reject (raises SystemExit): comma-splice with a stranded final `?`
-    (the classic malformed hook pattern — `"X, Y?"` where `?` belongs only
-    on the first clause).
+    Hard rejects (raises SystemExit):
+      - comma-splice with a stranded final `?`
+      - more than 2 sentences in a single text field (two-sentence-blocks rule)
 
-    Warnings (print to stderr, don't reject): missing terminal punctuation,
-    individual sentences over RUNON_WORD_THRESHOLD words.
+    Warnings (print to stderr, don't reject):
+      - missing terminal punctuation
+      - individual sentences over RUNON_WORD_THRESHOLD words
     """
     stripped = text.strip()
+    # Strip inline cues (`[soft]`, `[excited]`) for counting purposes — they're
+    # not spoken text.
+    text_for_count = _INLINE_CUE_RE.sub("", stripped).strip()
 
     # Hard reject: comma + final `?` strongly suggests stranded question mark
-    # ("Wake up with a sore throat, skip the pharmacy?"). False positives are
-    # rare in scripted health/wellness copy.
-    if "," in stripped and stripped.endswith("?"):
+    # ("Wake up with a sore throat, skip the pharmacy?").
+    if "," in text_for_count and text_for_count.endswith("?"):
         _fail(
             path,
             f"{label}.text looks like a comma splice with a stranded '?' — "
             f'rewrite as two sentences. Got: {stripped!r}',
         )
 
+    # Hard reject: more than 2 sentences per text field (two-sentence-blocks rule).
+    # Counting sentences = (number of sentence terminators that aren't em-dashes)
+    sentences = [s for s in _SENTENCE_SPLIT_RE.split(text_for_count) if s.strip()]
+    if len(sentences) > _MAX_SENTENCES_PER_SECTION:
+        _fail(
+            path,
+            f"{label}.text has {len(sentences)} sentences (max "
+            f"{_MAX_SENTENCES_PER_SECTION}). Split into shorter sections to "
+            f"avoid breathless TTS. Got: {stripped!r}",
+        )
+
     # Warning: no terminal punctuation at all
-    if not stripped.endswith(_TERMINAL_PUNCT):
+    if not text_for_count.endswith(_TERMINAL_PUNCT):
         print(
-            f"[script] WARN: {label}.text has no terminal punctuation ('.','!','?'); "
-            f"TTS prosody may be flat. Got: {stripped!r}",
+            f"[script] WARN: {label}.text has no terminal punctuation; TTS prosody "
+            f"may be flat. Got: {stripped!r}",
             file=sys.stderr,
         )
 
     # Warning: any individual sentence over the run-on threshold
-    sentences = _SENTENCE_SPLIT_RE.split(stripped)
     for sent in sentences:
         wc = len(sent.split())
         if wc > _RUNON_WORD_THRESHOLD:
@@ -93,6 +110,20 @@ def _validate_section(path: Path, label: str, sec: object) -> None:
         _fail(path, f"{label}.text must be a non-empty string")
 
     _check_punctuation(path, label, sec["text"])
+
+    # Optional pronunciation_hints: {word: phonetic_spelling}
+    if "pronunciation_hints" in sec:
+        hints = sec["pronunciation_hints"]
+        if not isinstance(hints, dict):
+            _fail(path, f"{label}.pronunciation_hints must be an object/dict")
+        for k, v in hints.items():
+            if not isinstance(k, str) or not k.strip():
+                _fail(path, f"{label}.pronunciation_hints has an empty/non-string key")
+            if not isinstance(v, str) or not v.strip():
+                _fail(
+                    path,
+                    f"{label}.pronunciation_hints[{k!r}] must be a non-empty string",
+                )
 
     # Find queries via any supported key
     qs = None
