@@ -60,18 +60,42 @@ def main() -> None:
     print()
 
     chars_sent = 0
+    successes: list[str] = []
+    failures: list[tuple[str, str]] = []  # (name, reason)
+
     for name, voice_id in tts.VOICES.items():
         marker = "*" if name == tts.DEFAULT_VOICE else " "
         print(f" {marker} {name:<8}  ({voice_id})  ...", end=" ", flush=True)
-        mp3_bytes = tts._tts_call(TEST_TEXT, voice_id)
+        try:
+            mp3_bytes = tts._tts_call(TEST_TEXT, voice_id)
+        except Exception as e:
+            msg = str(e)
+            if "paid_plan_required" in msg or "Free users cannot use library voices" in msg:
+                reason = "paid plan required (library voice — free tier blocked)"
+            elif "voice_not_found" in msg:
+                reason = "voice not found in this account"
+            else:
+                reason = f"{type(e).__name__}: {msg[:80]}"
+            print(f"✗ {reason}")
+            failures.append((name, reason))
+            continue
         chars_sent += len(TEST_TEXT)
         out_path = out_dir / f"elevenlabs_{name}.mp3"
         out_path.write_bytes(mp3_bytes)
         sz_kb = len(mp3_bytes) / 1024
         print(f"→ {out_path.relative_to(ROOT)}  ({sz_kb:.1f} KB)")
+        successes.append(name)
 
     print()
-    print(f"Total chars sent: {chars_sent:,} across {len(tts.VOICES)} voices")
+    print(
+        f"Successful: {len(successes)}/{len(tts.VOICES)} "
+        f"({', '.join(successes) if successes else 'none'})"
+    )
+    if failures:
+        print(f"Failed:     {len(failures)}/{len(tts.VOICES)}")
+        for name, reason in failures:
+            print(f"   - {name}: {reason}")
+    print(f"Total chars sent: {chars_sent:,} (only counts successful calls)")
 
     used_after, _ = tts.get_credit_balance()
     if used_after is not None and used_before is not None:
