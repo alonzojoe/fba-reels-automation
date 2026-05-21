@@ -8,7 +8,7 @@ The combined MP3 is finally converted to a 16 kHz mono WAV for faster-whisper.
 Key features:
 - Eight narrator voices selectable by friendly name (`liam`, `josh`, `charlie`,
   `callum`, `sam`, `brian`, `bill`, `adam`) or raw `voice_id` via the
-  `--voice` CLI flag. Default: **Liam** — expressive American male.
+  `--voice` CLI flag. Default: **Bill** — authoritative, deep narrator.
 - Model `eleven_multilingual_v2` — noticeably better emotional range and
   inflection than the cheaper turbo model. ~2× credit cost per character; at
   ~350 chars per reel that still leaves 12-15 reels on the 10K-char free tier.
@@ -44,16 +44,16 @@ from elevenlabs.client import ElevenLabs
 # Friendly name (lowercase) → ElevenLabs voice_id. All free-tier-accessible.
 # Names are matched case-insensitively in `resolve_voice`.
 VOICES: dict[str, str] = {
-    "liam":    "TX3LPaxmHKxFdv7VOQHJ",  # expressive American male — DEFAULT
-    "josh":    "TxGEqnHWrfWFTfGW9XjX",  # deep, mature narrator
+    "bill":    "pqHfZKP75CvOlQylNhV4",  # authoritative, deep — DEFAULT
+    "liam":    "TX3LPaxmHKxFdv7VOQHJ",  # expressive American male
     "charlie": "IKne3meq5aSn9XLyUdCD",  # casual Australian male
     "callum":  "N2lVS1w4EtoT3dr4eOWO",  # intense, dramatic
-    "sam":     "yoZ06aMxZJJ28mfd3POQ",  # raspy, real-sounding
     "brian":   "nPczCjzI2devNBz1zQrb",  # warm, mature
-    "bill":    "pqHfZKP75CvOlQylNhV4",  # authoritative, deep
     "adam":    "pNInz6obpgDQGcFmaJgB",  # classic narrator
+    "josh":    "TxGEqnHWrfWFTfGW9XjX",  # deep, mature narrator (PAID — library voice)
+    "sam":     "yoZ06aMxZJJ28mfd3POQ",  # raspy, real-sounding (PAID — library voice)
 }
-DEFAULT_VOICE: str = "liam"
+DEFAULT_VOICE: str = "bill"
 DEFAULT_MODEL: str = "eleven_multilingual_v2"
 DEFAULT_OUTPUT_FORMAT: str = "mp3_44100_128"
 
