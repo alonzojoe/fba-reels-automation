@@ -17,12 +17,12 @@ python3 reel.py --script script.json
 ## What it does
 
 1. **Script** — *(you provide)* a JSON file with hook + 3 tips + CTA. Each section has a `queries` list of 2–3 Pexels search terms; the renderer rotates through them as it cuts.
-2. **Voiceover** — **ElevenLabs API** (`eleven_multilingual_v2` model). Default voice `liam` (expressive male narrator); per-segment synthesis so punctuation drives intonation. Override with `--voice <name|voice_id>` ([catalog](#voice-brand-locked)).
+2. **Voiceover** — **ElevenLabs API** (`eleven_multilingual_v2` model). Default voice `bill` (authoritative, deep narrator); per-segment synthesis so punctuation drives intonation. Override with `--voice <name|voice_id>` ([catalog](#voice-brand-locked)).
 3. **Word timestamps** — `faster-whisper` (`base` model, CPU) produces per-word timing.
 4. **Hook + body with the 3-second rule** — the hook is cut into 1.5–2 s shots with a Ken Burns 1.0 → 1.08 zoom (highest-retention real estate in a Reel). Body sections cut into 2.5–3 s shots. Within each section, transitions vary: 60% fade / 25% zoom-in / 15% slide (deterministic by cut index, so re-renders match). Hard cuts between sections.
 5. **Captions** — ASS subtitle file, bold green (`#00FF66`) word-by-word with Gaussian-blurred shadow.
 6. **Background music** — auto-picked at random from [`bg-music/`](#background-music), looped, mixed at ~-22 dB, faded out over the last 1.5 s.
-7. **Outro overlay** — the CTA footage extends 2.5 s past the voiceover, with the outro text fading in over a stepped-gradient darken at the bottom of the frame. No separate solid card.
+7. **Outro / follow-call** — there's no separate outro segment any more. The follow-call (e.g. `"...and follow for more wake-up tips that actually work."`) is woven into the CTA text by the script generator, so the voice doesn't seam at the very end of the reel and the body captions sync the closing words naturally.
 8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, draws the outro gradient, burns captions, mixes audio, encodes H.264 + AAC.
 
 ## Setup
@@ -101,14 +101,10 @@ For symptoms or body-related content, write queries that **show body parts** —
 # Skip background music
 .venv/bin/python reel.py --script script.json --no-music
 
-# Custom voice, outro text, text color
+# Custom voice + text color
 .venv/bin/python reel.py --script script.json \
-    --voice Daniel \
-    --outro-text "SAVE THIS|FOR LATER" \
+    --voice callum \
     --text-color "#FF3366"
-
-# Skip the outro entirely
-.venv/bin/python reel.py --script script.json --no-outro
 ```
 
 ### Flags
@@ -117,39 +113,39 @@ For symptoms or body-related content, write queries that **show body parts** —
 | ----------------------- | ----------------------------- | -------------------------------------------------------------------- |
 | `--script PATH`         | *(required)*                  | Path to the script JSON file.                                        |
 | `--out PATH`            | `out/final.mp4`               | Output MP4 path.                                                     |
-| `--voice NAME|ID`       | `liam`                        | ElevenLabs voice name (case-insensitive) or raw voice_id ([catalog](#voice-brand-locked)). |
+| `--voice NAME|ID`       | `bill`                        | ElevenLabs voice name (case-insensitive) or raw voice_id ([catalog](#voice-brand-locked)). |
 | `--music PATH`          | auto from `bg-music/`         | Background music file. Mixed at ~-22 dB, looped, faded out at end.   |
 | `--no-music`            | off                           | Skip music even if files exist in `bg-music/`.                       |
-| `--no-outro`            | off                           | Skip the 2.5 s outro overlay.                                        |
-| `--outro-text "L1\|L2"` | `LIKE AND FOLLOW\|FOR MORE`   | Override outro text. `\|` is the line separator.                     |
-| `--text-color HEX`      | `#00FF66`                     | Color for **all** on-screen text (body captions + outro).            |
+| `--text-color HEX`      | `#00FF66`                     | Color for all body word-by-word captions.                            |
 | `--dry-run`             | off                           | Validate script + Pexels search + cut plan only. No render.          |
 | `--keep-work`           | off                           | Keep `work/<ts>/` after success.                                     |
 
 ## Voice (brand-locked)
 
-The default voice is **`liam`** — an expressive American male narrator that
-delivers more inflection than the flatter "broadcaster" voices. The brand
-voice is intentionally consistent across every reel for audience recognition.
+The default voice is **`bill`** — an authoritative, deep ElevenLabs narrator
+that lands well for health/wellness authority content. The brand voice is
+intentionally consistent across every reel for audience recognition.
 Override only when A/B-testing.
 
-| Friendly name      | Voice ID                       | Notes                             |
-| ------------------ | ------------------------------ | --------------------------------- |
-| `liam` *(default)* | `TX3LPaxmHKxFdv7VOQHJ`         | Expressive American male           |
-| `josh`             | `TxGEqnHWrfWFTfGW9XjX`         | Deep, mature narrator             |
-| `charlie`          | `IKne3meq5aSn9XLyUdCD`         | Casual Australian male            |
-| `callum`           | `N2lVS1w4EtoT3dr4eOWO`         | Intense, dramatic                 |
-| `sam`              | `yoZ06aMxZJJ28mfd3POQ`         | Raspy, real-sounding              |
-| `brian`            | `nPczCjzI2devNBz1zQrb`         | Warm, mature                      |
-| `bill`             | `pqHfZKP75CvOlQylNhV4`         | Authoritative, deep               |
-| `adam`             | `pNInz6obpgDQGcFmaJgB`         | Classic narrator                  |
+| Friendly name      | Voice ID                       | Tier      | Notes                             |
+| ------------------ | ------------------------------ | --------- | --------------------------------- |
+| `bill` *(default)* | `pqHfZKP75CvOlQylNhV4`         | Free      | Authoritative, deep               |
+| `liam`             | `TX3LPaxmHKxFdv7VOQHJ`         | Free      | Expressive American male          |
+| `charlie`          | `IKne3meq5aSn9XLyUdCD`         | Free      | Casual Australian male            |
+| `callum`           | `N2lVS1w4EtoT3dr4eOWO`         | Free      | Intense, dramatic                 |
+| `brian`            | `nPczCjzI2devNBz1zQrb`         | Free      | Warm, mature                      |
+| `adam`             | `pNInz6obpgDQGcFmaJgB`         | Free      | Classic narrator                  |
+| `josh`             | `TxGEqnHWrfWFTfGW9XjX`         | **Paid**  | Deep, mature narrator (library voice — requires paid plan) |
+| `sam`              | `yoZ06aMxZJJ28mfd3POQ`         | **Paid**  | Raspy, real-sounding (library voice — requires paid plan) |
 
-Names are case-insensitive — `--voice Liam`, `--voice liam`, and
-`--voice LIAM` all resolve identically. You can also pass a raw `voice_id` for
-any ElevenLabs voice in your account.
+Names are case-insensitive — `--voice Bill`, `--voice bill`, and
+`--voice BILL` all resolve identically. You can also pass a raw `voice_id` for
+any ElevenLabs voice in your account. **Heads-up:** the ElevenLabs free tier
+blocks "library voices" via the API (returns `402 paid_plan_required`). The
+six entries marked "Free" above are premade voices and work on every tier.
 
 ```bash
-# Default (liam)
+# Default (bill)
 python reel.py --script script.json
 
 # Switch voice by friendly name
@@ -163,7 +159,7 @@ Voice and pacing knobs live in [`pipeline/tts.py`](pipeline/tts.py):
 
 ```python
 # pipeline/tts.py
-DEFAULT_VOICE = "liam"
+DEFAULT_VOICE = "bill"
 DEFAULT_MODEL = "eleven_multilingual_v2"   # better emotional range than turbo
 VOICE_SETTINGS = VoiceSettings(
     stability=0.35,        # lower = more emotional variation
@@ -198,7 +194,7 @@ Reels retention drops sharply when a single visual stays on screen for more than
 
 A typical 35-second reel ends up with **~13–15 clip cuts**, with ~3 of them in the first 5 seconds.
 
-## Caption + outro style
+## Caption style
 
 All on-screen text uses a single color (default **green `#00FF66`**, matches the health/wellness niche). Override with `--text-color "#RRGGBB"`.
 
@@ -208,20 +204,21 @@ All on-screen text uses a single color (default **green `#00FF66`**, matches the
 - Real Gaussian-blurred drop shadow (two-layer ASS trick — libass doesn't support a single-property blurred shadow).
 - Pop-in scale animation (80→100% over 80 ms).
 
-**Outro** (overlaid on extended CTA footage — no separate solid card):
-- The CTA video is extended by 2.5 s past the voiceover end.
-- During that 2.5 s, a stepped-gradient bottom darken (drawbox bands at increasing alpha) appears for readability.
-- Two-line outro text appears in the lower-third with a 300 ms fade-in, same bold green color, ~140 px.
-- Default text: `LIKE AND FOLLOW` / `FOR MORE`.
+**Outro / follow-call** lives inside the CTA text. There's no separate
+overlay segment, no auto-appended `"Like and follow for more"` boilerplate —
+the script generator weaves a follow-call into the CTA naturally so the voice
+flows from the last tip straight through the closing sentence without a seam.
+
+Example CTAs from the prompt:
+
+- `"Save this for tomorrow morning, and follow for more wake-up tips that actually work."`
+- `"Try this tonight, and follow for more natural remedies that actually work."`
+- `"Pick just one and start today, then follow for more daily gut health hacks."`
 
 ```bash
 python reel.py --script script.json                                  # default
-python reel.py --script script.json --no-outro                       # skip outro
-python reel.py --script script.json --outro-text "SAVE THIS|FOR LATER"
-python reel.py --script script.json --text-color "#FF3366"           # pink/red text everywhere
+python reel.py --script script.json --text-color "#FF3366"           # pink/red captions
 ```
-
-The voiceover audio is automatically padded with 2.5 s of silence when the outro is included.
 
 **Changing the font:** default is `Arial Black` (always on macOS). To use Montserrat Black or Anton, install the font system-wide and edit the `fontname` default in `pipeline/captions.py`.
 
@@ -270,7 +267,7 @@ same script skips the network.
 ## Output spec
 
 - 1080×1920 MP4 (H.264, CRF 23, `-preset medium`, yuv420p), AAC audio (192 k), `+faststart` for streaming.
-- 30–45 s of voiceover + 2.5 s outro card (unless `--no-outro`).
+- 30–45 s of voiceover (CTA includes the follow-call — no separate outro segment).
 - ~12–14 clip cuts in a typical reel for high visual energy.
 - Ready to upload directly to Facebook Reels with no further editing.
 
