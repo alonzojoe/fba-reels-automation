@@ -130,7 +130,11 @@ use the `queries` array.
 >   like `"Sore throat?"` reads flat — but the FULL pattern `"Sore throat?
 >   Try this."` works because the second sentence resolves it.
 > - **Tips**: EXACTLY 3 tips. Each tip can use 2–5 short fragments (no cap).
-> - **CTA**: 1–2 short sentences.
+> - **CTA**: 1–2 short sentences AND must include the follow-call
+>   ("follow for more...", "hit follow for...", "save and follow for...") woven
+>   naturally into the sentence — NOT bolted on as a separate "Like and follow
+>   for more." line. The renderer does NOT auto-append anything; what you write
+>   in the CTA is the final word the viewer hears.
 > - **Total spoken length**: 30–45 seconds (~85–125 words *including* short
 >   fragments).
 > - **Punctuation**: every sentence ends with `.`, `?`, `!`, `...`, or `—`.
@@ -221,7 +225,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Try this tonight — you'll wake up feeling so much better.",
+>     "text": "Try this tonight, and follow for more natural remedies that actually work.",
 >     "queries": [
 >       "cozy bed morning light",
 >       "person stretching getting out of bed"
@@ -269,7 +273,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Save this for tomorrow morning — your body will thank you.",
+>     "text": "Save this for tomorrow morning, and follow for more wake-up tips that actually work.",
 >     "queries": [
 >       "person stretching getting out of bed morning",
 >       "morning routine planner notebook hands"
@@ -317,7 +321,7 @@ use the `queries` array.
 >     }
 >   ],
 >   "cta": {
->     "text": "Pick just one and start today — you'll feel the difference in a week.",
+>     "text": "Pick just one and start today, then follow for more daily gut health hacks.",
 >     "queries": [
 >       "person preparing healthy meal kitchen",
 >       "wellness routine morning hands"
