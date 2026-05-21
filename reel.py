@@ -94,21 +94,6 @@ def main() -> None:
         help=f"Explicitly skip music even if {BG_MUSIC_DIR}/ has files.",
     )
     parser.add_argument(
-        "--no-outro", action="store_true",
-        help=(
-            "Skip the spoken outro line at the end of the CTA "
-            '(default: appends "Like and follow for more." to the CTA voiceover).'
-        ),
-    )
-    parser.add_argument(
-        "--outro-text", default=captions.DEFAULT_OUTRO_TEXT,
-        help=(
-            f'Spoken outro line, appended to the CTA voiceover. Use "|" as a '
-            f'line separator (joined with a space when spoken). '
-            f'Default: "{captions.DEFAULT_OUTRO_TEXT}".'
-        ),
-    )
-    parser.add_argument(
         "--text-color", default=captions.DEFAULT_TEXT_COLOR,
         help=(
             "Color (hex #RRGGBB) for ALL on-screen text — body captions and outro. "
@@ -169,9 +154,6 @@ def main() -> None:
     )
     (work_dir / "script.json").write_text(json.dumps(script_data, indent=2))
 
-    include_spoken_outro = not args.no_outro
-    outro_text = args.outro_text if include_spoken_outro else None
-
     section_texts = [
         script_data["hook"]["text"],
         *(t["text"] for t in script_data["tips"]),
@@ -182,17 +164,9 @@ def main() -> None:
         *script_data["tips"],
         script_data["cta"],
     ]
-
-    # Append the outro line to the CTA voiceover so the body captions naturally
-    # show "Like and follow for more" word-by-word as the voice says it — no
-    # separate big-text overlay is needed.
-    if outro_text:
-        spoken_outro = " ".join(p.strip() for p in outro_text.split("|") if p.strip())
-        spoken_outro = spoken_outro.capitalize() + "."
-        cta = section_texts[-1].strip()
-        if cta and not cta.endswith((".", "!", "?")):
-            cta += "."
-        section_texts[-1] = (cta + " " + spoken_outro).strip()
+    # No more auto-appending an outro line. The CTA in script.json is the final
+    # word — the LLM crafts a single cohesive ending that includes the follow-
+    # call naturally, so the voice doesn't seam at the very end of the reel.
 
     word_count = sum(len(t.split()) for t in section_texts)
     est_seconds = word_count / 140 * 60
