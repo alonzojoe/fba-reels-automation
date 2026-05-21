@@ -3,7 +3,8 @@
 # Pipeline outputs and intermediates
 work/
 out/
-auditions/*.wav
+debug/
+auditions/
 
 # Python
 __pycache__/

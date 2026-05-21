@@ -20,11 +20,12 @@ _LEGACY_QUERY_KEYS = ("queries", "search_query", "query")
 # Punctuation validation
 _TERMINAL_PUNCT = (".", "!", "?", "—")
 _RUNON_WORD_THRESHOLD = 25
-_MAX_SENTENCES_PER_SECTION = 2
 # A sentence terminator for counting purposes (em-dash is mid-sentence)
 _SENTENCE_SPLIT_RE = re.compile(r"(?:\.{2,}|[.!?])\s+")
-# Inline cue markers (e.g. "[soft]", "[excited]") that we strip before counting words
-_INLINE_CUE_RE = re.compile(r"\[(\w+)\]\s*")
+# Inline bracket tags (legacy [soft]/[excited] cues) — stripped before validation
+# so they don't get counted as text. Kokoro doesn't honor them and the script
+# generator no longer emits them; this regex is just defensive cleanup.
+_INLINE_CUE_RE = re.compile(r"\[[^\]]*\]\s*")
 
 
 def load_script(path: Path) -> dict:
@@ -52,15 +53,18 @@ def _check_punctuation(path: Path, label: str, text: str) -> None:
 
     Hard rejects (raises SystemExit):
       - comma-splice with a stranded final `?`
-      - more than 2 sentences in a single text field (two-sentence-blocks rule)
 
     Warnings (print to stderr, don't reject):
       - missing terminal punctuation
       - individual sentences over RUNON_WORD_THRESHOLD words
+
+    Sentence count is NOT capped — the conversational style explicitly uses
+    many short fragments per section (e.g. `"Lemon water. First thing. Trust me."`).
+    The run-on warning catches over-long individual sentences instead.
     """
     stripped = text.strip()
-    # Strip inline cues (`[soft]`, `[excited]`) for counting purposes — they're
-    # not spoken text.
+    # Strip legacy bracket tags (no longer used by the script generator) so they
+    # don't get counted as spoken text.
     text_for_count = _INLINE_CUE_RE.sub("", stripped).strip()
 
     # Hard reject: comma + final `?` strongly suggests stranded question mark
@@ -72,16 +76,7 @@ def _check_punctuation(path: Path, label: str, text: str) -> None:
             f'rewrite as two sentences. Got: {stripped!r}',
         )
 
-    # Hard reject: more than 2 sentences per text field (two-sentence-blocks rule).
-    # Counting sentences = (number of sentence terminators that aren't em-dashes)
     sentences = [s for s in _SENTENCE_SPLIT_RE.split(text_for_count) if s.strip()]
-    if len(sentences) > _MAX_SENTENCES_PER_SECTION:
-        _fail(
-            path,
-            f"{label}.text has {len(sentences)} sentences (max "
-            f"{_MAX_SENTENCES_PER_SECTION}). Split into shorter sections to "
-            f"avoid breathless TTS. Got: {stripped!r}",
-        )
 
     # Warning: no terminal punctuation at all
     if not text_for_count.endswith(_TERMINAL_PUNCT):

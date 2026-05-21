@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """Render a faceless health/home-remedies vertical Facebook Reel from a script JSON.
 
-Voice: hardcoded to Kokoro `am_michael` for brand consistency. Override with
---voice only when prototyping. All on-screen text shares one `--text-color`.
-The outro is overlaid on extended CTA footage with a bottom gradient — no
-separate solid card.
+Voice: ElevenLabs Brian by default (overridable via --voice with friendly name
+or raw voice_id). All on-screen text shares one --text-color. The outro is
+overlaid on extended CTA footage with a bottom gradient — no separate card.
 """
 from __future__ import annotations
 
 import os
 
-# Kokoro (via torch) and faster-whisper (via ctranslate2) both link libiomp5.
-# Without these env vars, loading both in one process triggers an OpenMP
-# double-init segfault. Set BEFORE any pipeline imports.
+# Defensive: faster-whisper (via ctranslate2) links libiomp5; keep these
+# tolerant settings so the renderer never trips an OpenMP double-init.
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
@@ -82,16 +80,9 @@ def main() -> None:
     parser.add_argument(
         "--voice", default=tts.DEFAULT_VOICE,
         help=(
-            "Kokoro voice. Accepts a single name (am_michael) or a comma-separated "
-            f"blend (af_alloy,am_echo,am_fenrir). Default is the locked brand "
-            f"blend: {tts.DEFAULT_VOICE}. Override only when prototyping."
-        ),
-    )
-    parser.add_argument(
-        "--speed", type=float, default=tts.DEFAULT_SPEED,
-        help=(
-            f"Speech speed multiplier (Kokoro default 1.0). "
-            f"Default: {tts.DEFAULT_SPEED} (locked brand pace)."
+            "ElevenLabs voice. Accepts a friendly name "
+            f"({', '.join(tts.VOICES.keys())}) or a raw voice_id. "
+            f"Default: {tts.DEFAULT_VOICE}."
         ),
     )
     parser.add_argument(
@@ -101,21 +92,6 @@ def main() -> None:
     parser.add_argument(
         "--no-music", action="store_true",
         help=f"Explicitly skip music even if {BG_MUSIC_DIR}/ has files.",
-    )
-    parser.add_argument(
-        "--no-outro", action="store_true",
-        help=(
-            "Skip the spoken outro line at the end of the CTA "
-            '(default: appends "Like and follow for more." to the CTA voiceover).'
-        ),
-    )
-    parser.add_argument(
-        "--outro-text", default=captions.DEFAULT_OUTRO_TEXT,
-        help=(
-            f'Spoken outro line, appended to the CTA voiceover. Use "|" as a '
-            f'line separator (joined with a space when spoken). '
-            f'Default: "{captions.DEFAULT_OUTRO_TEXT}".'
-        ),
     )
     parser.add_argument(
         "--text-color", default=captions.DEFAULT_TEXT_COLOR,
@@ -173,13 +149,10 @@ def main() -> None:
     work_dir.mkdir(parents=True, exist_ok=True)
     print(f"[reel] work dir: {work_dir}")
     print(
-        f"[reel] voice: {args.voice} @ {args.speed}  music: {music_status}  "
+        f"[reel] voice: {args.voice}  music: {music_status}  "
         f"text-color: {args.text_color}"
     )
     (work_dir / "script.json").write_text(json.dumps(script_data, indent=2))
-
-    include_spoken_outro = not args.no_outro
-    outro_text = args.outro_text if include_spoken_outro else None
 
     section_texts = [
         script_data["hook"]["text"],
@@ -191,17 +164,9 @@ def main() -> None:
         *script_data["tips"],
         script_data["cta"],
     ]
-
-    # Append the outro line to the CTA voiceover so the body captions naturally
-    # show "Like and follow for more" word-by-word as the voice says it — no
-    # separate big-text overlay is needed.
-    if outro_text:
-        spoken_outro = " ".join(p.strip() for p in outro_text.split("|") if p.strip())
-        spoken_outro = spoken_outro.capitalize() + "."
-        cta = section_texts[-1].strip()
-        if cta and not cta.endswith((".", "!", "?")):
-            cta += "."
-        section_texts[-1] = (cta + " " + spoken_outro).strip()
+    # No more auto-appending an outro line. The CTA in script.json is the final
+    # word — the LLM crafts a single cohesive ending that includes the follow-
+    # call naturally, so the voice doesn't seam at the very end of the reel.
 
     word_count = sum(len(t.split()) for t in section_texts)
     est_seconds = word_count / 140 * 60
@@ -246,10 +211,10 @@ def main() -> None:
         sec.get("pronunciation_hints", {}) for sec in sections_meta
     ]
 
-    print(f"[2/6] Synthesizing voiceover with Kokoro TTS ({args.voice} @ {args.speed})...")
+    print(f"[2/6] Synthesizing voiceover with ElevenLabs ({args.voice})...")
     voice_wav, section_bounds = tts.synthesize(
         section_texts, args.voice, work_dir,
-        speed=args.speed, print_input=args.print_tts_input,
+        print_input=args.print_tts_input,
         pronunciation_hints_by_section=pronunciation_hints,
     )
     (work_dir / "sections.json").write_text(json.dumps(section_bounds, indent=2))
