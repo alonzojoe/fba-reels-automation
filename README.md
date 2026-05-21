@@ -218,6 +218,10 @@ If `bg-music/` is empty, music is skipped silently — no error. Override with `
 
 Verify the license fits your use case (some require attribution in the post caption).
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the commit-message conventions (conventional-commit-style prefixes).
+
 ## Project layout
 
 ```
