@@ -1,0 +1,46 @@
+{
+  "hook": {
+    "text": "Lying awake at 3 AM? Try these 3 tricks. You'll be out cold in 5 minutes.",
+    "queries": [
+      "woman lying bed eyes wide open dark bedroom",
+      "person checking phone time bed insomnia closeup",
+      "tired person tossing turning bed sheets night"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, try the four-seven-eight breathing trick. Breathe in through your nose for four seconds. Hold for seven. Exhale slowly for eight. It calms your nervous system in minutes.",
+      "queries": [
+        "person closing eyes deep breath bed slow",
+        "close up nose inhaling deeply peaceful",
+        "woman exhaling mouth relaxed pillow",
+        "hands resting chest breathing meditation bed"
+      ]
+    },
+    {
+      "text": "Next, cool your room to sixty-five degrees. Your body needs to drop in temperature to fall asleep. So crank up the fan or open a window.",
+      "queries": [
+        "hand adjusting thermostat low temperature closeup",
+        "ceiling fan spinning bedroom dark slow motion",
+        "window opening cool night breeze curtains",
+        "person pulling cozy blanket up cold bedroom"
+      ]
+    },
+    {
+      "text": "Last, the military sleep method. Relax your face. Drop your shoulders. Let your arms fall heavy. Slow your breathing. Most soldiers fall asleep in two minutes flat.",
+      "queries": [
+        "person face relaxing pillow eyes closing",
+        "shoulders dropping releasing tension bed",
+        "arms falling limp relaxed bedsheets closeup",
+        "soldier military sleeping peaceful uniform"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Save this for tonight. And follow for more sleep hacks that actually work.",
+    "queries": [
+      "person sleeping deeply peaceful moonlight",
+      "phone screen save bookmark notification closeup"
+    ]
+  }
+}
