@@ -156,6 +156,30 @@ use the `queries` array.
 >    eyes, hands, stomach, temples. High retention because viewers self-identify.
 > 4. **Hook queries should be punchy and visually striking** — close-ups,
 >    macro, dramatic compositions.
+> 5. **CTA queries — show a person SCROLLING, not a lock screen.** The CTA
+>    is where viewers decide to save / follow, so the footage should mirror
+>    the action you want them to take. Do NOT use queries like
+>    `"phone notification save bookmark"` or `"phone screen lock"` — Pexels
+>    returns the same cliché stock clip (a phone lock screen with a random
+>    bank / carrier notification) over and over, and it looks templated.
+>
+>    Use scroll / swipe / tap action queries instead. Pool to draw from:
+>    - `"person scrolling phone bed cozy closeup"`
+>    - `"hands holding phone scrolling social media"`
+>    - `"thumb scrolling phone screen closeup macro"`
+>    - `"woman scrolling phone smiling content"`
+>    - `"person tapping phone save button hand"`
+>    - `"fingers swiping phone screen quickly"`
+>    - `"person watching reel phone close up"`
+>    - `"hand holding phone vertical scroll motion"`
+>    - `"person bookmarking saving content phone"`
+>    - `"phone in hand scrolling instagram tiktok feed"`
+>    - `"user double tapping phone screen heart"`
+>    - `"young person enjoying phone content laughing"`
+>
+>    Pick **2–3 different entries per reel**. Vary across reels so no two
+>    scripts pull the exact same CTA clips — the renderer dedupes by
+>    video_id, but only within one reel.
 >
 > **Phonetic hints (`pronunciation_hints`):**
 > Kokoro mispronounces several common health terms. Add a hint map to any
