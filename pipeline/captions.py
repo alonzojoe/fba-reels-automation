@@ -1,12 +1,22 @@
-"""Word-by-word ASS captions plus an in-footage outro overlay.
+"""Karaoke-style ASS captions.
 
-All text (body captions + outro) uses a single `text_color` (default #00FF66).
-Each word event is a (shadow, main) pair giving a real Gaussian-blurred drop
-shadow under the colored text — libass doesn't expose a one-shot blurred shadow,
-so we layer a `\\blur6` black copy under the main word.
+The full phrase (~5-7 words) appears on screen with every word in white;
+as the voice speaks each word, that word flips to the brand color (default
+green #00FF66) and stays highlighted for the rest of the phrase. When the
+phrase ends, the line clears and the next phrase appears.
 
-The outro sits in the lower-third (y=1500) so a bottom drawbox gradient in
-assemble.py can darken the area behind it without affecting body captions.
+Rendering tricks:
+- libass karaoke `\\k` tags drive the per-word color change: SecondaryColour
+  (white) → PrimaryColour (green) at each word's spoken time. Already-flipped
+  words stay in PrimaryColour for the remainder of the event.
+- Real Gaussian-blurred drop shadow via the two-layer approach: a parallel
+  Dialogue at the same time range renders the plain phrase in `\\blur6` black
+  text, positioned 4px down-right behind the main layer. (libass doesn't
+  expose a single-property blurred shadow.)
+- 2px black outline on the main text for contrast on any footage.
+
+Phrases are grouped from whisper word timestamps via `group_words_into_phrases`
+— see that function for the break-priority rules.
 """
 from __future__ import annotations
 
@@ -20,15 +30,6 @@ CAPTION_Y = int(FRAME_H * 0.65)   # 1248 (65% from top)
 SHADOW_DX = 4
 SHADOW_DY = 4
 SHADOW_BLUR = 6
-POPIN_MS = 80
-
-# Outro positioning (lower-third — classic Reels CTA placement)
-OUTRO_DURATION = 2.5
-OUTRO_FONTSIZE = 140
-OUTRO_FADE_IN_MS = 300
-OUTRO_X = FRAME_W // 2
-OUTRO_Y = 1500                    # ~78% from top
-DEFAULT_OUTRO_TEXT = "LIKE AND FOLLOW|FOR MORE"
 
 # Default brand text color: vibrant green, on-brand for health/wellness niche
 DEFAULT_TEXT_COLOR = "#00FF66"
@@ -60,15 +61,23 @@ def hex_to_ass_style(hex_color: str) -> str:
 
 
 def _style_row(fontname: str, primary_color: str) -> str:
+    # Karaoke caption style:
+    #   PrimaryColour   = the brand color (green by default) — applied to a
+    #                     word AFTER libass walks past its \\k tag
+    #   SecondaryColour = white — applied to a word BEFORE its \\k tag fires
+    #   OutlineColour   = black, Outline thickness 2 (heavier for contrast on
+    #                     any footage)
+    #   Shadow = 0 — we render the drop shadow as a separate \\blur layer
     primary = hex_to_ass_style(primary_color)
+    white = hex_to_ass_style("#FFFFFF")
     # Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour,
     #         OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut,
     #         ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow,
     #         Alignment, MarginL, MarginR, MarginV, Encoding
     return (
         f"Style: Default,{fontname},95,"
-        f"{primary},{primary},&H00000000,&H00000000,"
-        f"1,0,0,0,100,100,0,0,1,1,0,5,0,0,0,1"
+        f"{primary},{white},&H00000000,&H00000000,"
+        f"1,0,0,0,100,100,0,0,1,2,0,5,0,0,0,1"
     )
 
 
@@ -216,71 +225,32 @@ def _karaoke_phrase_events(
     return [shadow, main], event_end
 
 
-def _word_events(word: str, start: float, end: float) -> list[str]:
-    """(shadow, main) Dialogue pair for one word. Color comes from the style row."""
-    text = _escape(word)
-    shadow_overrides = (
-        f"{{\\blur{SHADOW_BLUR}"
-        f"\\1c{BLACK_INLINE}\\3c{BLACK_INLINE}\\bord0"
-        f"\\pos({CAPTION_X + SHADOW_DX},{CAPTION_Y + SHADOW_DY})}}"
-    )
-    main_overrides = (
-        f"{{\\pos({CAPTION_X},{CAPTION_Y})"
-        f"\\fscx80\\fscy80\\t(0,{POPIN_MS},\\fscx100\\fscy100)}}"
-    )
-    ts_start, ts_end = _ts(start), _ts(end)
-    shadow = f"Dialogue: 0,{ts_start},{ts_end},Default,,0,0,0,,{shadow_overrides}{text}"
-    main = f"Dialogue: 1,{ts_start},{ts_end},Default,,0,0,0,,{main_overrides}{text}"
-    return [shadow, main]
-
-
-def _outro_events(outro_text: str, start: float, end: float) -> list[str]:
-    """Two-line outro at the lower-third, with fade-in. Same color as captions."""
-    lines = [_escape(line.strip()) for line in outro_text.split("|") if line.strip()]
-    ass_text = r"\N".join(lines)
-
-    ts_start, ts_end = _ts(start), _ts(end)
-    shadow_overrides = (
-        f"{{\\blur{SHADOW_BLUR}"
-        f"\\1c{BLACK_INLINE}\\3c{BLACK_INLINE}\\bord0"
-        f"\\pos({OUTRO_X + SHADOW_DX},{OUTRO_Y + SHADOW_DY})"
-        f"\\fs{OUTRO_FONTSIZE}\\fad({OUTRO_FADE_IN_MS},0)}}"
-    )
-    main_overrides = (
-        f"{{\\pos({OUTRO_X},{OUTRO_Y})"
-        f"\\fs{OUTRO_FONTSIZE}\\fad({OUTRO_FADE_IN_MS},0)}}"
-    )
-    shadow = f"Dialogue: 0,{ts_start},{ts_end},Default,,0,0,0,,{shadow_overrides}{ass_text}"
-    main = f"Dialogue: 1,{ts_start},{ts_end},Default,,0,0,0,,{main_overrides}{ass_text}"
-    return [shadow, main]
-
-
 def build_ass(
     words: list[dict],
     total_duration: float,
-    outro_text: str | None = DEFAULT_OUTRO_TEXT,
-    outro_duration: float = OUTRO_DURATION,
+    outro_text: str | None = None,
+    outro_duration: float = 0.0,
     text_color: str = DEFAULT_TEXT_COLOR,
     fontname: str = "Arial Black",
 ) -> str:
-    """Build the ASS subtitle file.
+    """Build the karaoke-style ASS subtitle file.
 
-    All text uses `text_color` (default green #00FF66). The outro is appended
-    starting at total_duration and lasts outro_duration; it sits at the
-    lower-third position so a drawbox gradient in assemble.py can darken
-    behind it.
+    Each word's start time (from whisper) controls when it flips from white
+    to `text_color` (default green). Phrases are grouped from the word stream
+    via `group_words_into_phrases`; each phrase emits a shadow+main Dialogue
+    pair.
+
+    `outro_text` and `outro_duration` are kept in the signature for
+    back-compat but no longer produce any events — the renderer dropped the
+    outro overlay several iterations ago. The CTA text in the script now
+    contains the follow-call directly.
     """
     out: list[str] = [_ass_header(fontname, text_color)]
-    n = len(words)
-    for i, w in enumerate(words):
-        start = w["start"]
-        end = words[i + 1]["start"] if i < n - 1 else w["end"] + 0.3
-        end = min(end, total_duration)
-        if end <= start:
-            continue
-        out.extend(_word_events(w["word"], start, end))
-
-    if outro_text:
-        out.extend(_outro_events(outro_text, total_duration, total_duration + outro_duration))
-
+    phrases = group_words_into_phrases(words)
+    prev_event_end = 0.0
+    for phrase in phrases:
+        events, prev_event_end = _karaoke_phrase_events(
+            phrase, prev_event_end, total_duration=total_duration
+        )
+        out.extend(events)
     return "\n".join(out) + "\n"
