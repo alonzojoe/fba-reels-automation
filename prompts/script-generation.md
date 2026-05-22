@@ -180,6 +180,20 @@ use the `queries` array.
 >    Pick **2–3 different entries per reel**. Vary across reels so no two
 >    scripts pull the exact same CTA clips — the renderer dedupes by
 >    video_id, but only within one reel.
+> 6. **Avoid queries that surface branded / watermarked clips.** Pexels
+>    returns plenty of community-uploaded stock that visibly shows carrier
+>    names (Verizon, AT&T, T-Mobile), app logos (Instagram, TikTok,
+>    Facebook UI), bank or credit-card notifications, retailer logos,
+>    specific URLs on screens, or other creators' watermarks. These look
+>    unprofessional, hurt brand polish, and can carry trademark concerns.
+>
+>    Mitigation has two layers: (a) prefer queries that describe the
+>    *action* without naming a platform — `"phone in hand scrolling"`,
+>    not `"phone scrolling tiktok"`; and (b) if a chosen clip turns out
+>    to have visible branding when you review the render, look up its
+>    `video_id` in the `[footage] picked ...` log lines and add it to
+>    `BLOCKED_VIDEO_IDS` in `pipeline/footage.py` — that video will
+>    never be selected again.
 >
 > **Phonetic hints (`pronunciation_hints`):**
 > Kokoro mispronounces several common health terms. Add a hint map to any
