@@ -1,43 +1,46 @@
 {
   "hook": {
-    "text": "Do you wake up with a sore throat? Skip the pharmacy.",
+    "text": "Got a sore throat? Try this before medicine. These 3 remedies work in hours.",
     "queries": [
-      "person touching throat closeup",
-      "woman waking up morning bed",
-      "tea steam macro slow motion"
+      "person touching throat in pain closeup",
+      "woman holding neck sore throat winced",
+      "person coughing hand on throat closeup"
     ]
   },
   "tips": [
     {
-      "text": "Gargle warm salt water for thirty seconds. The salt pulls fluid from swollen tissues and soothes the burning fast.",
+      "text": "First, mix one spoon of raw honey with warm water. Sip it slowly. Honey coats your throat and kills bacteria naturally.",
       "queries": [
-        "salt being poured spoon",
-        "glass of water on counter closeup",
-        "person gargling water bathroom"
+        "honey dripping from spoon golden slow motion",
+        "person stirring honey into warm mug",
+        "woman sipping honey water cozy closeup",
+        "raw honey jar wooden spoon natural light"
       ]
     },
     {
-      "text": "Stir raw honey and lemon into hot water. Honey coats the throat while lemon supports your immune system.",
+      "text": "Next, gargle warm salt water three times a day. Use half a teaspoon of salt in eight ounces of warm water. The salt pulls inflammation right out of your tissue.",
       "queries": [
-        "honey drizzling into mug macro",
-        "lemon slice squeezed closeup",
-        "warm tea cup steam"
+        "hand pouring salt into glass water closeup",
+        "person tilting head back gargling water",
+        "salt crystals macro shot white background",
+        "warm water glass steaming morning kitchen"
       ]
     },
     {
-      "text": "Sip ginger tea slowly. Fresh ginger contains compounds that may help calm inflammation and ease the pain.",
+      "text": "Last, sip fresh ginger tea with lemon all day. Slice fresh ginger, steep in hot water, add lemon. It reduces swelling fast and boosts your immune system.",
       "queries": [
-        "ginger root sliced cutting board",
-        "ginger tea being poured cup",
-        "person holding warm mug hands"
+        "fresh ginger root being sliced closeup",
+        "hot ginger tea steeping clear cup",
+        "lemon being squeezed into tea slow motion",
+        "person holding warm tea mug both hands"
       ]
     }
   ],
   "cta": {
-    "text": "Save this for the next time it hits.",
+    "text": "Save this for the next time you feel sick. And follow for more home remedies that actually work.",
     "queries": [
-      "cozy mug hands warm light",
-      "wellness self care routine"
+      "person feeling better smiling healthy",
+      "phone screen save bookmark notification closeup"
     ]
   }
 }
