@@ -216,6 +216,17 @@ def fetch_clips(
     else:
         print(f"[footage] Downloading {len(pending)} clip(s) in parallel...", file=sys.stderr)
 
+    # Log every chosen video's Pexels page URL so off-brand clips (carrier
+    # logos, app UIs, watermarks) can be identified and added to the blocklist
+    # in this module. Format chosen for easy copy-paste into BLOCKED_VIDEO_IDS.
+    for v, _, section_idx in plan:
+        label = f"section[{section_idx}]"
+        print(
+            f"[footage] picked {label}  video_id={v['id']:>10}  "
+            f"{v.get('url', '(no url)')}",
+            file=sys.stderr,
+        )
+
     if pending:
         with ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS) as pool:
             futures = [pool.submit(_download_one, u, o) for u, o in pending]
