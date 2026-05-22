@@ -14,6 +14,15 @@ import requests
 PEXELS_API_URL = "https://api.pexels.com/videos/search"
 CACHE_DIR_NAME = ".clip_cache"
 
+# Hard-block specific Pexels videos from EVER being selected. Add a video_id
+# here when its content is off-brand (visible carrier names like Verizon /
+# AT&T, app logos, bank/credit-card notifications, watermarks, branded
+# clothing). The full Pexels page URL of each chosen clip is logged on every
+# render — copy the offending video_id from the log into this set.
+#
+# Example: BLOCKED_VIDEO_IDS = {1234567, 7654321}
+BLOCKED_VIDEO_IDS: set[int] = set()
+
 # Within-section xfade overlap. Must match assemble.py.
 XFADE_DURATION = 0.15
 
@@ -62,7 +71,10 @@ def _search(api_key: str, query: str) -> list[dict]:
         timeout=30,
     )
     r.raise_for_status()
-    return r.json().get("videos", [])
+    videos = r.json().get("videos", [])
+    # Strip globally-blocked videos at the search boundary so they never
+    # enter dedupe / adjacency / selection logic.
+    return [v for v in videos if v.get("id") not in BLOCKED_VIDEO_IDS]
 
 
 def _pick(
