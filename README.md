@@ -20,7 +20,7 @@ python3 reel.py --script script.json
 2. **Voiceover** — **ElevenLabs API** (`eleven_multilingual_v2` model). Default voice `bill` (authoritative, deep narrator); per-segment synthesis so punctuation drives intonation. Override with `--voice <name|voice_id>` ([catalog](#voice-brand-locked)).
 3. **Word timestamps** — `faster-whisper` (`base` model, CPU) produces per-word timing.
 4. **Hook + body with the 3-second rule** — the hook is cut into 1.5–2 s shots with a Ken Burns 1.0 → 1.08 zoom (highest-retention real estate in a Reel). Body sections cut into 2.5–3 s shots. Within each section, transitions vary: 60% fade / 25% zoom-in / 15% slide (deterministic by cut index, so re-renders match). Hard cuts between sections.
-5. **Captions** — ASS subtitle file, bold green (`#00FF66`) word-by-word with Gaussian-blurred shadow.
+5. **Captions** — karaoke style. Phrases (~5–7 words) appear in white; each word flips to the brand color (default green `#00FF66`) when it's spoken and stays highlighted. Gaussian-blurred drop shadow + 2 px outline. See [Caption style](#caption-style).
 6. **Background music** — auto-picked at random from [`bg-music/`](#background-music), looped, mixed at ~-22 dB, faded out over the last 1.5 s.
 7. **Outro / follow-call** — there's no separate outro segment any more. The follow-call (e.g. `"...and follow for more wake-up tips that actually work."`) is woven into the CTA text by the script generator, so the voice doesn't seam at the very end of the reel and the body captions sync the closing words naturally.
 8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, draws the outro gradient, burns captions, mixes audio, encodes H.264 + AAC.
@@ -198,11 +198,30 @@ A typical 35-second reel ends up with **~13–15 clip cuts**, with ~3 of them in
 
 All on-screen text uses a single color (default **green `#00FF66`**, matches the health/wellness niche). Override with `--text-color "#RRGGBB"`.
 
-**Body captions** (word-by-word):
-- Bold green, one word visible at a time, synced to whisper timestamps.
+**Body captions** (karaoke / progressive highlight):
+- Each phrase (~5–7 words) appears on screen as a single block in **white** with a 2 px black outline.
+- As the voice speaks each word, that word flips to the brand color (default green `#00FF66`) and **stays** highlighted until the phrase ends.
+- When the phrase ends, the line clears and the next phrase appears in white again.
 - Centered horizontally, vertical position ~65 % of the frame.
 - Real Gaussian-blurred drop shadow (two-layer ASS trick — libass doesn't support a single-property blurred shadow).
-- Pop-in scale animation (80→100% over 80 ms).
+
+**How it works under the hood:**
+
+Phrase grouping in [`pipeline/captions.py`](pipeline/captions.py) `group_words_into_phrases()` uses whisper word timestamps and breaks on (priority order):
+
+1. Any word ending with `.` `?` `!`  (always — sentence terminator)
+2. Reaching `KARAOKE_MAX_WORDS_PER_PHRASE` (7 by default)
+3. Word ending with `,` once `KARAOKE_MIN_WORDS_FOR_WEAK_BREAK` (3) is reached
+4. Speaker pause ≥ `KARAOKE_BIG_GAP_S` (0.50 s) once min-words is reached
+
+Each phrase emits a shadow + main Dialogue pair with libass karaoke (`\k`) tags driving the per-word color flip. PrimaryColour = brand color (highlighted), SecondaryColour = white (unspoken).
+
+**Inspect the style in isolation:**
+
+```bash
+.venv/bin/python scripts/karaoke_test.py
+# → debug/karaoke_test.mp4  — one sentence on a dark background
+```
 
 **Outro / follow-call** lives inside the CTA text. There's no separate
 overlay segment, no auto-appended `"Like and follow for more"` boilerplate —
