@@ -35,6 +35,13 @@ DEFAULT_TEXT_COLOR = "#00FF66"
 
 BLACK_INLINE = "&H000000&"
 
+# Karaoke phrase grouping + timing
+KARAOKE_MAX_WORDS_PER_PHRASE = 7   # never put more than this on screen at once
+KARAOKE_MIN_WORDS_FOR_WEAK_BREAK = 3  # don't trigger comma/gap breaks before this many
+KARAOKE_BIG_GAP_S = 0.50           # speaker pause large enough to end a phrase
+KARAOKE_LOOKAHEAD_S = 0.15         # phrase appears this long BEFORE first word
+KARAOKE_TAIL_S = 0.10              # phrase holds this long AFTER last word
+
 
 def hex_to_ass_inline(hex_color: str) -> str:
     """'#RRGGBB' → ASS '&HBBGGRR&' inline override."""
@@ -100,6 +107,113 @@ def _escape(s: str) -> str:
         .replace("}", "\\}")
         .replace("\n", " ")
     )
+
+
+def group_words_into_phrases(
+    words: list[dict],
+    max_words: int = KARAOKE_MAX_WORDS_PER_PHRASE,
+    min_words_for_weak_break: int = KARAOKE_MIN_WORDS_FOR_WEAK_BREAK,
+    big_gap_s: float = KARAOKE_BIG_GAP_S,
+) -> list[list[dict]]:
+    """Group whisper word-timestamped output into karaoke phrases.
+
+    Breaks the stream on (in priority order):
+      - any word ending with `.` `?` `!`  (always — sentence terminator)
+      - reaching `max_words` items in the current phrase
+      - word ending with `,` once `min_words_for_weak_break` is reached
+      - time gap to next word ≥ `big_gap_s` once `min_words_for_weak_break` reached
+
+    Returns a list of phrases; each phrase is a list of word dicts in order.
+    """
+    if not words:
+        return []
+    phrases: list[list[dict]] = []
+    current: list[dict] = []
+    for i, w in enumerate(words):
+        current.append(w)
+        stripped = w["word"].strip()
+        next_gap = (
+            words[i + 1]["start"] - w["end"]
+            if i + 1 < len(words) else float("inf")
+        )
+        strong = stripped.endswith((".", "?", "!"))
+        at_max = len(current) >= max_words
+        weak = (
+            len(current) >= min_words_for_weak_break
+            and (stripped.endswith(",") or next_gap >= big_gap_s)
+        )
+        if strong or at_max or weak:
+            phrases.append(current)
+            current = []
+    if current:
+        phrases.append(current)
+    return phrases
+
+
+def _karaoke_phrase_events(
+    phrase_words: list[dict],
+    prev_event_end: float,
+    total_duration: float | None = None,
+) -> tuple[list[str], float]:
+    """Emit (shadow, main) Dialogue lines for one karaoke phrase.
+
+    The main layer carries one `\\kXX` tag per word — libass renders the
+    text in SecondaryColour (white) until each word's cumulative \\k time
+    elapses, at which point that word flips to PrimaryColour (green) and
+    stays there for the rest of the event. Already-spoken words remain
+    highlighted.
+
+    The shadow layer is a parallel Dialogue at the same start/end with a
+    `\\blur` black render of the same phrase (no karaoke tags) offset
+    SHADOW_DX/DY pixels, giving the Gaussian-blurred drop shadow effect.
+
+    `prev_event_end` is the end time of the previous phrase's event — used
+    to clamp the lookahead so consecutive phrases don't overlap visually.
+
+    Returns (events, this_event_end).
+    """
+    first = phrase_words[0]
+    last = phrase_words[-1]
+    event_start = max(first["start"] - KARAOKE_LOOKAHEAD_S, prev_event_end + 0.01)
+    event_start = max(event_start, 0.0)
+    event_end = last["end"] + KARAOKE_TAIL_S
+    if total_duration is not None:
+        event_end = min(event_end, total_duration)
+    if event_end <= event_start:
+        return [], prev_event_end
+
+    # Karaoke text — for each word, \k<wait_cs> precedes it; libass holds the
+    # word in SecondaryColour for that many centiseconds, then flips it to
+    # PrimaryColour (where it stays for the remainder of the event).
+    karaoke_parts: list[str] = []
+    prev_t = event_start
+    for w in phrase_words:
+        wait_cs = max(0, int(round((w["start"] - prev_t) * 100)))
+        karaoke_parts.append(f"{{\\k{wait_cs}}}{_escape(w['word'])}")
+        prev_t = w["start"]
+    karaoke_text = " ".join(karaoke_parts)
+
+    # Shadow: no karaoke timing, just blurred black phrase
+    shadow_text = " ".join(_escape(w["word"]) for w in phrase_words)
+
+    ts_start, ts_end = _ts(event_start), _ts(event_end)
+
+    shadow_overrides = (
+        f"{{\\blur{SHADOW_BLUR}"
+        f"\\1c{BLACK_INLINE}\\2c{BLACK_INLINE}\\3c{BLACK_INLINE}\\bord0"
+        f"\\pos({CAPTION_X + SHADOW_DX},{CAPTION_Y + SHADOW_DY})}}"
+    )
+    main_overrides = f"{{\\pos({CAPTION_X},{CAPTION_Y})}}"
+
+    shadow = (
+        f"Dialogue: 0,{ts_start},{ts_end},Default,,0,0,0,,"
+        f"{shadow_overrides}{shadow_text}"
+    )
+    main = (
+        f"Dialogue: 1,{ts_start},{ts_end},Default,,0,0,0,,"
+        f"{main_overrides}{karaoke_text}"
+    )
+    return [shadow, main], event_end
 
 
 def _word_events(word: str, start: float, end: float) -> list[str]:
