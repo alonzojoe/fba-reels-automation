@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Anxiety hitting hard? Use this sixty-second trick. It calms your nervous system instantly.",
+    "queries": [
+      "person feeling anxious hands chest closeup",
+      "woman overwhelmed breathing heavy closeup",
+      "stressed person eyes closed deep breath"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, the cold water trick. Splash icy water on your face. Or hold an ice cube in your hand for thirty seconds. This activates your dive reflex and slows your heart rate fast.",
+      "queries": [
+        "person splashing cold water face bathroom",
+        "ice cube melting in hand closeup macro",
+        "cold water running tap sink closeup",
+        "calm face after cold water relieved"
+      ]
+    },
+    {
+      "text": "Second, the five four three two one method. Name five things you see. Four you can touch. Three you hear. Two you smell. One you taste. This pulls you out of your head.",
+      "queries": [
+        "person looking around room mindfully observing",
+        "hand touching different textures soft fabric",
+        "person closing eyes listening peaceful",
+        "calm person grounded present moment"
+      ]
+    },
+    {
+      "text": "Third, box breathing. Breathe in for four seconds. Hold for four. Exhale for four. Hold for four. Repeat for two minutes. Navy SEALs use this before combat.",
+      "queries": [
+        "person breathing slowly eyes closed peaceful",
+        "soldier military focused calm composed",
+        "close up nose inhaling deep slow",
+        "person counting breath meditation calm"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Save this for the next anxiety wave. And follow for more natural calm tips that work.",
+    "queries": [
+      "person feeling peaceful relieved smile",
+      "person scrolling phone bed cozy closeup",
+      "thumb scrolling phone screen closeup macro"
+    ]
+  }
+}
