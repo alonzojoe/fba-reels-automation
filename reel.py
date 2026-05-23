@@ -29,6 +29,63 @@ from pipeline import assemble, captions, footage, script, transcribe, tts
 SECTION_LABELS = ["hook", "tip1", "tip2", "tip3", "cta"]
 BG_MUSIC_DIR = Path("bg-music")
 BG_MUSIC_EXTS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
+CONTENTS_DIR = Path("contents")
+
+
+def _available_topics() -> list[str]:
+    if not CONTENTS_DIR.exists():
+        return []
+    topics = []
+    for p in sorted(CONTENTS_DIR.glob("sample_*.json")):
+        topics.append(p.stem.removeprefix("sample_"))
+    return topics
+
+
+def resolve_script_path(arg: str) -> Path:
+    """Resolve --script argument to a concrete file path.
+
+    Tries, in order:
+      1. Exact path as given
+      2. <arg>.json
+      3. contents/<arg>.json
+      4. contents/sample_<arg>.json
+      5. contents/<arg>  (if arg already ends in .json, covers bare filename)
+    """
+    candidates: list[Path] = []
+    p = Path(arg)
+    candidates.append(p)
+    if p.suffix != ".json":
+        candidates.append(p.with_suffix(".json"))
+    name = p.name
+    candidates.append(CONTENTS_DIR / name)
+    if not name.endswith(".json"):
+        candidates.append(CONTENTS_DIR / f"{name}.json")
+        candidates.append(CONTENTS_DIR / f"sample_{name}.json")
+    else:
+        stem = name[:-5]
+        if not stem.startswith("sample_"):
+            candidates.append(CONTENTS_DIR / f"sample_{name}")
+
+    seen: set[Path] = set()
+    for c in candidates:
+        if c in seen:
+            continue
+        seen.add(c)
+        if c.exists():
+            return c
+
+    topics = _available_topics()
+    hint = (
+        "\n  Available topics in contents/:\n    - "
+        + "\n    - ".join(topics)
+        if topics
+        else "\n  (No scripts found in contents/.)"
+    )
+    sys.exit(
+        f"ERROR: could not resolve script '{arg}'. Tried:\n  - "
+        + "\n  - ".join(str(c) for c in candidates)
+        + hint
+    )
 
 SCRIPT_MISSING_HELP = """\
 ERROR: --script is required.
@@ -71,7 +128,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--script", default=None,
-        help="Path to the script JSON file (required). See prompts/script-generation.md.",
+        help=(
+            "Script to render. Accepts a topic name ('sore_throat'), a "
+            "filename ('sample_sore_throat.json'), or a full path. Bare names "
+            "resolve against contents/. See prompts/script-generation.md."
+        ),
     )
     parser.add_argument(
         "--out", default="out/final.mp4",
@@ -140,7 +201,7 @@ def main() -> None:
         else:
             music_status = f"skipped ({BG_MUSIC_DIR}/ empty or missing)"
 
-    script_path = Path(args.script)
+    script_path = resolve_script_path(args.script)
     print(f"[reel] script: {script_path}")
     script_data = script.load_script(script_path)
 
