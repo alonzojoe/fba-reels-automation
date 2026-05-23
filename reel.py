@@ -180,7 +180,22 @@ def main() -> None:
         "--keep-work", action="store_true",
         help="Keep the work/<ts>/ directory after success.",
     )
+    parser.add_argument(
+        "--list", action="store_true",
+        help="List all available script topics in contents/ and exit.",
+    )
     args = parser.parse_args()
+
+    if args.list:
+        topics = _available_topics()
+        if not topics:
+            print(f"No scripts found in {CONTENTS_DIR}/.")
+            return
+        print("Available scripts:")
+        for t in topics:
+            print(f"  - {t}")
+        print("\nUsage: python3 reel.py --script <name>")
+        return
 
     if not args.script:
         print(SCRIPT_MISSING_HELP)
