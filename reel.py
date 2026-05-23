@@ -135,8 +135,12 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--out", default="out/final.mp4",
-        help="Output MP4 path (default: out/final.mp4)",
+        "--out", default=None,
+        help=(
+            "Output MP4 path. Defaults to out/<topic>/final.mp4 where <topic> "
+            "is derived from the script filename (e.g. sample_sore_throat.json "
+            "→ out/sore_throat/final.mp4)."
+        ),
     )
     parser.add_argument(
         "--voice", default=tts.DEFAULT_VOICE,
@@ -204,6 +208,12 @@ def main() -> None:
     script_path = resolve_script_path(args.script)
     print(f"[reel] script: {script_path}")
     script_data = script.load_script(script_path)
+
+    topic = script_path.stem.removeprefix("sample_")
+    if args.out:
+        out_path = Path(args.out)
+    else:
+        out_path = Path("out") / topic / "final.mp4"
 
     ts = time.strftime("%Y%m%d_%H%M%S")
     work_dir = Path("work") / ts
@@ -330,7 +340,6 @@ def main() -> None:
     captions_path.write_text(ass_content)
 
     print("[6/6] Assembling final MP4 with ffmpeg...")
-    out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Render each section as its own xfade chain (Ken Burns + variety transitions
