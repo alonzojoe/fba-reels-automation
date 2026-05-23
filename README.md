@@ -7,11 +7,14 @@ ChatGPT, locally, or by hand) and pass it in via `--script`.
 ```bash
 # Step A: generate a script (one time, per topic)
 #   → copy prompts/script-generation.md into Claude Code
-#   → append your topic, save the output JSON to script.json
+#   → append your topic, save the output JSON to contents/sample_<topic>.json
 
-# Step B: render the reel
-python3 reel.py --script script.json
-# → out/final.mp4 (30-45s voiceover + 2.5s green-text outro, ready for Facebook Reels)
+# Step B: render the reel — bare topic names resolve against contents/
+python3 reel.py --script sore_throat
+# → out/sore_throat/final.mp4 (30–45 s voiceover, ready for Facebook Reels)
+
+# Or list everything currently in contents/
+python3 reel.py --list
 ```
 
 ## What it does
@@ -66,7 +69,7 @@ exceed the remaining balance.
 
 ### Step A — Generate a script
 
-Open [`prompts/script-generation.md`](prompts/script-generation.md), copy the prompt block into Claude Code (claude.ai/code) or any LLM, replace the `<YOUR TOPIC HERE>` placeholder with your topic, and save the resulting JSON as `script.json`.
+Open [`prompts/script-generation.md`](prompts/script-generation.md), copy the prompt block into Claude Code (claude.ai/code) or any LLM, replace the `<YOUR TOPIC HERE>` placeholder with your topic, and save the resulting JSON as **`contents/sample_<topic>.json`** (e.g. `contents/sample_sore_throat.json`). All reel scripts live in [`contents/`](contents/) — see [`contents/README.md`](contents/README.md) for the conventions.
 
 The expected schema is:
 
@@ -88,32 +91,50 @@ For symptoms or body-related content, write queries that **show body parts** —
 
 ### Step B — Render
 
+`--script` accepts a topic name, filename, or full path — all of these resolve identically:
+
 ```bash
-# Full render with defaults (auto-picks music from bg-music/, green outro)
-.venv/bin/python reel.py --script script.json
+.venv/bin/python reel.py --script sore_throat
+.venv/bin/python reel.py --script sample_sore_throat
+.venv/bin/python reel.py --script sample_sore_throat.json
+.venv/bin/python reel.py --script contents/sample_sore_throat.json
+```
+
+Outputs land at **`out/<topic>/final.mp4`** so renders don't overwrite each other.
+
+```bash
+# Full render with defaults (auto-picks music from bg-music/)
+.venv/bin/python reel.py --script sore_throat
+
+# List all available script topics in contents/
+.venv/bin/python reel.py --list
 
 # Cheap topic verification (validate schema + Pexels search, no TTS/whisper/render)
-.venv/bin/python reel.py --script script.json --dry-run
+.venv/bin/python reel.py --script sore_throat --dry-run
 
 # Specific music file (overrides bg-music/ auto-pick)
-.venv/bin/python reel.py --script script.json --music ./my-track.mp3
+.venv/bin/python reel.py --script sore_throat --music ./my-track.mp3
 
 # Skip background music
-.venv/bin/python reel.py --script script.json --no-music
+.venv/bin/python reel.py --script sore_throat --no-music
 
 # Custom voice + text color
-.venv/bin/python reel.py --script script.json \
+.venv/bin/python reel.py --script sore_throat \
     --voice callum \
     --text-color "#FF3366"
+
+# Override the output path
+.venv/bin/python reel.py --script sore_throat --out out/custom.mp4
 ```
 
 ### Flags
 
 | Flag                    | Default                       | Description                                                          |
 | ----------------------- | ----------------------------- | -------------------------------------------------------------------- |
-| `--script PATH`         | *(required)*                  | Path to the script JSON file.                                        |
-| `--out PATH`            | `out/final.mp4`               | Output MP4 path.                                                     |
-| `--voice NAME|ID`       | `bill`                        | ElevenLabs voice name (case-insensitive) or raw voice_id ([catalog](#voice-brand-locked)). |
+| `--script NAME\|PATH`   | *(required)*                  | Topic name, filename, or path. Bare names resolve against `contents/` (e.g. `sore_throat` → `contents/sample_sore_throat.json`). |
+| `--list`                | off                           | Print all available topics in `contents/` and exit.                  |
+| `--out PATH`            | `out/<topic>/final.mp4`       | Output MP4 path. Default derives `<topic>` from the script filename. |
+| `--voice NAME\|ID`      | `bill`                        | ElevenLabs voice name (case-insensitive) or raw voice_id ([catalog](#voice-brand-locked)). |
 | `--music PATH`          | auto from `bg-music/`         | Background music file. Mixed at ~-22 dB, looped, faded out at end.   |
 | `--no-music`            | off                           | Skip music even if files exist in `bg-music/`.                       |
 | `--text-color HEX`      | `#00FF66`                     | Color for all body word-by-word captions.                            |
