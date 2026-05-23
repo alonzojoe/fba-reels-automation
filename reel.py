@@ -263,11 +263,7 @@ def main() -> None:
     if args.dry_run:
         print("\n[dry-run] Planning cuts + searching Pexels (no downloads)...")
         # Rough section durations from word count for the dry-run plan
-        est_voice_durations = [len(t.split()) * 60 / 140 for t in section_texts]
-        # CTA extends to include outro overlay time
-        video_durations = list(est_voice_durations)
-        if include_outro:
-            video_durations[-1] += outro_duration
+        video_durations = [len(t.split()) * 60 / 140 for t in section_texts]
         results = footage.search_only(pexels_key, sections_meta, video_durations)
         (work_dir / "dry_run_report.json").write_text(json.dumps(results, indent=2))
         print("\n[dry-run report]")
