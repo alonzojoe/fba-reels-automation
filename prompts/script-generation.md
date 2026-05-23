@@ -2,11 +2,17 @@
 
 Paste the prompt block below into Claude Code (or any LLM) — replace
 `<YOUR TOPIC HERE>` at the bottom with your topic. Save the JSON output to
-`script.json` and run:
+`contents/sample_<topic>.json` (e.g. `contents/sample_sore_throat.json`) and
+run:
 
 ```bash
-python3 reel.py --script script.json
+python3 reel.py --script <topic>
+# e.g. python3 reel.py --script sore_throat
 ```
+
+The `--script` flag resolves bare topic names against `contents/`, so you
+don't have to type the full path. See `contents/README.md` for the full
+resolution rules. Run `python3 reel.py --list` to see all available topics.
 
 ---
 
