@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Bloated after every meal? It's not the food. It's HOW you're eating.",
+    "queries": [
+      "person hand on stomach bloated discomfort",
+      "woman pressing belly looking down kitchen",
+      "uncomfortable feeling after meal closeup"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, slow down. Most people swallow air when eating fast. Chew each bite twenty times. This breaks down food and stops air from entering your stomach.",
+      "queries": [
+        "person chewing food slowly mindfully closeup",
+        "woman eating salad fork mouth slow motion",
+        "mouth chewing closeup mindful eating",
+        "person taking small bite calm meal"
+      ]
+    },
+    {
+      "text": "Second, drink warm water before meals. Cold water shocks your digestion. Warm water activates your stomach acid and breaks down food faster.",
+      "queries": [
+        "warm water glass steam rising morning",
+        "person sipping warm water peaceful kitchen",
+        "kettle pouring hot water mug closeup",
+        "lemon water warm cup hands holding"
+      ]
+    },
+    {
+      "text": "Third, try peppermint tea after meals. Peppermint relaxes your digestive muscles and helps trapped gas release. Most people feel relief in twenty minutes.",
+      "queries": [
+        "peppermint tea steeping fresh leaves closeup",
+        "person holding warm mug after meal",
+        "fresh mint leaves macro green vibrant",
+        "tea cup steam rising peaceful moment"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Save this and try one before your next meal. Follow for more digestion tips that work.",
+    "queries": [
+      "person feeling relieved happy after eating",
+      "person scrolling phone bed cozy closeup",
+      "thumb scrolling phone screen closeup macro"
+    ]
+  }
+}
