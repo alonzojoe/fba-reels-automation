@@ -156,6 +156,44 @@ use the `queries` array.
 >    eyes, hands, stomach, temples. High retention because viewers self-identify.
 > 4. **Hook queries should be punchy and visually striking** — close-ups,
 >    macro, dramatic compositions.
+> 5. **CTA queries — show a person SCROLLING, not a lock screen.** The CTA
+>    is where viewers decide to save / follow, so the footage should mirror
+>    the action you want them to take. Do NOT use queries like
+>    `"phone notification save bookmark"` or `"phone screen lock"` — Pexels
+>    returns the same cliché stock clip (a phone lock screen with a random
+>    bank / carrier notification) over and over, and it looks templated.
+>
+>    Use scroll / swipe / tap action queries instead. Pool to draw from:
+>    - `"person scrolling phone bed cozy closeup"`
+>    - `"hands holding phone scrolling social media"`
+>    - `"thumb scrolling phone screen closeup macro"`
+>    - `"woman scrolling phone smiling content"`
+>    - `"person tapping phone save button hand"`
+>    - `"fingers swiping phone screen quickly"`
+>    - `"person watching reel phone close up"`
+>    - `"hand holding phone vertical scroll motion"`
+>    - `"person bookmarking saving content phone"`
+>    - `"phone in hand scrolling instagram tiktok feed"`
+>    - `"user double tapping phone screen heart"`
+>    - `"young person enjoying phone content laughing"`
+>
+>    Pick **2–3 different entries per reel**. Vary across reels so no two
+>    scripts pull the exact same CTA clips — the renderer dedupes by
+>    video_id, but only within one reel.
+> 6. **Avoid queries that surface branded / watermarked clips.** Pexels
+>    returns plenty of community-uploaded stock that visibly shows carrier
+>    names (Verizon, AT&T, T-Mobile), app logos (Instagram, TikTok,
+>    Facebook UI), bank or credit-card notifications, retailer logos,
+>    specific URLs on screens, or other creators' watermarks. These look
+>    unprofessional, hurt brand polish, and can carry trademark concerns.
+>
+>    Mitigation has two layers: (a) prefer queries that describe the
+>    *action* without naming a platform — `"phone in hand scrolling"`,
+>    not `"phone scrolling tiktok"`; and (b) if a chosen clip turns out
+>    to have visible branding when you review the render, look up its
+>    `video_id` in the `[footage] picked ...` log lines and add it to
+>    `BLOCKED_VIDEO_IDS` in `pipeline/footage.py` — that video will
+>    never be selected again.
 >
 > **Phonetic hints (`pronunciation_hints`):**
 > Kokoro mispronounces several common health terms. Add a hint map to any

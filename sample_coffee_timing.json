@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Drinking coffee first thing in the morning is making you more tired. Here's why.",
+    "queries": [
+      "person grabbing coffee mug morning kitchen",
+      "tired woman holding coffee yawning",
+      "fresh brewed coffee pour close up steam"
+    ]
+  },
+  "tips": [
+    {
+      "text": "Your cortisol naturally peaks at 8 AM. Drinking coffee then doesn't add energy. It just builds tolerance. So your body needs more caffeine over time to feel awake.",
+      "queries": [
+        "person looking tired coffee in hand",
+        "clock 8am morning sun streaming window",
+        "coffee cup steaming kitchen counter",
+        "woman rubbing eyes morning routine"
+      ]
+    },
+    {
+      "text": "Instead, wait ninety minutes after waking. Your cortisol naturally drops by then. Coffee will hit harder, last longer, and you won't crash by noon.",
+      "queries": [
+        "person stretching morning sunlight peaceful",
+        "watch wristwatch hands showing time closeup",
+        "woman drinking water glass morning",
+        "person preparing coffee mid morning kitchen"
+      ]
+    },
+    {
+      "text": "Before coffee, drink twelve ounces of water with a pinch of salt. This rehydrates your cells and balances electrolytes. You'll wake up faster than coffee alone.",
+      "queries": [
+        "glass water salt pinch sprinkling closeup",
+        "person drinking water morning glass",
+        "salt being sprinkled into water glass",
+        "hands holding clear water glass morning light"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Try this for one week. You'll never go back to morning coffee. Follow for more energy tips that work.",
+    "queries": [
+      "person feeling energized morning routine smile",
+      "fingers swiping phone screen quickly",
+      "young person enjoying phone content laughing"
+    ]
+  }
+}

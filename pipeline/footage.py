@@ -14,6 +14,15 @@ import requests
 PEXELS_API_URL = "https://api.pexels.com/videos/search"
 CACHE_DIR_NAME = ".clip_cache"
 
+# Hard-block specific Pexels videos from EVER being selected. Add a video_id
+# here when its content is off-brand (visible carrier names like Verizon /
+# AT&T, app logos, bank/credit-card notifications, watermarks, branded
+# clothing). The full Pexels page URL of each chosen clip is logged on every
+# render — copy the offending video_id from the log into this set.
+#
+# Example: BLOCKED_VIDEO_IDS = {1234567, 7654321}
+BLOCKED_VIDEO_IDS: set[int] = set()
+
 # Within-section xfade overlap. Must match assemble.py.
 XFADE_DURATION = 0.15
 
@@ -62,7 +71,10 @@ def _search(api_key: str, query: str) -> list[dict]:
         timeout=30,
     )
     r.raise_for_status()
-    return r.json().get("videos", [])
+    videos = r.json().get("videos", [])
+    # Strip globally-blocked videos at the search boundary so they never
+    # enter dedupe / adjacency / selection logic.
+    return [v for v in videos if v.get("id") not in BLOCKED_VIDEO_IDS]
 
 
 def _pick(
@@ -215,6 +227,17 @@ def fetch_clips(
         )
     else:
         print(f"[footage] Downloading {len(pending)} clip(s) in parallel...", file=sys.stderr)
+
+    # Log every chosen video's Pexels page URL so off-brand clips (carrier
+    # logos, app UIs, watermarks) can be identified and added to the blocklist
+    # in this module. Format chosen for easy copy-paste into BLOCKED_VIDEO_IDS.
+    for v, _, section_idx in plan:
+        label = f"section[{section_idx}]"
+        print(
+            f"[footage] picked {label}  video_id={v['id']:>10}  "
+            f"{v.get('url', '(no url)')}",
+            file=sys.stderr,
+        )
 
     if pending:
         with ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS) as pool:
