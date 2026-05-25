@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Always tired? You might be chronically dehydrated. Here are 3 signs your body needs water.",
+    "queries": [
+      "tired person rubbing eyes exhausted closeup",
+      "woman feeling fatigued at desk",
+      "person drinking water glass morning kitchen"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, dark yellow urine. If it looks like apple juice, you're behind on water. Healthy urine is light pale yellow, almost clear.",
+      "queries": [
+        "glass of clear water held up to light",
+        "person filling water bottle bathroom sink",
+        "yellow lemon water glass color comparison",
+        "hand holding water bottle clear refreshing"
+      ]
+    },
+    {
+      "text": "Second, constant brain fog. You can't focus, you forget words, you feel slow. Your brain is 75 percent water. Even 2 percent dehydration tanks your performance.",
+      "queries": [
+        "person staring blankly computer screen tired",
+        "woman holding head confused thinking",
+        "blurry vision concept hand over face",
+        "person drinking large glass water relief"
+      ]
+    },
+    {
+      "text": "Third, headaches that won't quit. Most headaches are actually dehydration in disguise. Try drinking 20 ounces of water before grabbing painkillers.",
+      "queries": [
+        "person rubbing temples headache pain",
+        "tall glass water with ice closeup macro",
+        "woman drinking water headache relief",
+        "person feeling better after hydration"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Save this and check yourself today. Follow for more body signals you shouldn't ignore.",
+    "queries": [
+      "person drinking water feeling refreshed energized",
+      "person scrolling phone bed cozy closeup",
+      "fingers swiping phone screen quickly"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Sugar cravings hitting hard? Stop them in sixty seconds with these three tricks.",
+    "queries": [
+      "person craving sweet looking candy temptation",
+      "hand reaching for chocolate bar closeup",
+      "woman opening fridge late night snack"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, drink a tall glass of water with a pinch of salt. Most sugar cravings are actually dehydration or low electrolytes. This fixes both in minutes.",
+      "queries": [
+        "tall glass cold water sparkling closeup",
+        "person drinking water big gulp refreshing",
+        "salt pinch sprinkling water glass macro",
+        "hand pouring water from pitcher kitchen"
+      ]
+    },
+    {
+      "text": "Second, eat one tablespoon of nut butter. Almond, peanut, or cashew works. The healthy fat and protein crash your craving fast and keeps you full for hours.",
+      "queries": [
+        "almond butter spoon dripping rich closeup",
+        "person eating spoonful peanut butter",
+        "nuts cashews almonds macro shot variety",
+        "hand spreading nut butter on apple slice"
+      ]
+    },
+    {
+      "text": "Third, brush your teeth or chew mint gum. The minty taste tricks your brain. Sweet foods taste terrible after mint. Your cravings disappear instantly.",
+      "queries": [
+        "person brushing teeth mirror bathroom morning",
+        "mint gum unwrapping closeup macro",
+        "fresh mint leaves green vibrant macro",
+        "toothbrush toothpaste mint fresh blue"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Save this for your next craving. Follow for more food hacks that actually work.",
+    "queries": [
+      "person feeling satisfied no more cravings",
+      "person scrolling phone bed cozy closeup",
+      "thumb scrolling phone screen closeup macro"
+    ]
+  }
+}
