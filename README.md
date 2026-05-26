@@ -25,12 +25,12 @@ and pass it in via `--script`.
 #   → copy prompts/script-generation.md into Claude Code
 #   → append your topic, save the output JSON to contents/sample_<topic>.json
 
-# Step B: render the reel — bare topic names resolve against contents/
-python3 reel.py --script sore_throat
-# → out/sore_throat/final.mp4 (~40–60 s voiceover, ready for Facebook Reels)
-
-# Or list everything currently in contents/
+# Step B: list available topics
 python3 reel.py --list
+
+# Step C: render any topic — bare names resolve against contents/
+python3 reel.py --script sore_throat
+# → out/sore_throat/final.mp4 (~40–60 s voiceover, ready to upload)
 ```
 
 ## What it does
