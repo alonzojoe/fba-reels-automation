@@ -342,6 +342,7 @@ same script skips the network.
 - **`PEXELS_API_KEY not set`** — fill `.env`.
 - **Pexels `0 results`** — query in your script is too obscure. Edit `script.json` to broaden the `search_query`.
 - **`[footage] WARN: limited Pexels variety`** — Pexels returned fewer unique videos than needed for that query. The reel still renders but reuses clips (never adjacent). Edit the query in `script.json` for more variety.
+- **A specific Pexels clip keeps showing up but is off-brand** — every chosen clip is logged with its URL via `[footage] picked section[X]  video_id=…  https://…`. Drop the offending `video_id` into the `BLOCKED_VIDEO_IDS` set at the top of [`pipeline/footage.py`](pipeline/footage.py); it will be filtered at the Pexels search chokepoint on the next render.
 - **`Filter not found` / caption text missing** — your ffmpeg lacks libass; install `ffmpeg-full` (see [Setup](#setup)).
 - **`ELEVENLABS_API_KEY not set`** — fill `.env`. Free key at https://elevenlabs.io/app/settings/api-keys.
 - **`Aborted (insufficient credits...)`** — your free-tier balance is below the reel's estimated character count. Wait for the monthly reset or upgrade.
