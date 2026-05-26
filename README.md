@@ -183,13 +183,13 @@ six entries marked "Free" above are premade voices and work on every tier.
 
 ```bash
 # Default (bill)
-python reel.py --script script.json
+python reel.py --script sore_throat
 
 # Switch voice by friendly name
-python reel.py --script script.json --voice callum
+python reel.py --script sore_throat --voice callum
 
 # Or by raw voice_id
-python reel.py --script script.json --voice ErXwobaYiN019PkySvjV
+python reel.py --script sore_throat --voice ErXwobaYiN019PkySvjV
 ```
 
 Voice and pacing knobs live in [`pipeline/tts.py`](pipeline/tts.py):
