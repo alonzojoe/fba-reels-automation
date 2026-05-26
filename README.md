@@ -333,6 +333,7 @@ same script skips the network.
 - ~40–60 s of voiceover (CTA includes the follow-call — no separate outro segment).
 - ~15–20 clip cuts in a typical reel for high visual energy.
 - Ready to upload directly to Facebook Reels with no further editing.
+- **End-to-end render time:** ~2–3 minutes on an M-series Mac (TTS API ~30 s, Pexels downloads ~20 s in parallel, whisper ~20 s, ffmpeg assemble ~60–90 s). Cached Pexels clips skip the download phase entirely.
 
 ## Troubleshooting
 
