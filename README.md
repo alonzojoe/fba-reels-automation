@@ -27,7 +27,7 @@ and pass it in via `--script`.
 
 # Step B: render the reel — bare topic names resolve against contents/
 python3 reel.py --script sore_throat
-# → out/sore_throat/final.mp4 (30–45 s voiceover, ready for Facebook Reels)
+# → out/sore_throat/final.mp4 (~40–60 s voiceover, ready for Facebook Reels)
 
 # Or list everything currently in contents/
 python3 reel.py --list
