@@ -76,6 +76,9 @@ cp .env.example .env
 #   ELEVENLABS_API_KEY=...    (https://elevenlabs.io/app/settings/api-keys)
 #   FFMPEG_BIN=/usr/local/opt/ffmpeg-full/bin/ffmpeg     (only if not on PATH)
 #   FFPROBE_BIN=/usr/local/opt/ffmpeg-full/bin/ffprobe   (only if not on PATH)
+
+# 5. Verify the install
+.venv/bin/python reel.py --list    # should print the bundled sample topics
 ```
 
 **ElevenLabs free tier** = 10,000 characters/month, enough for roughly 25–30
