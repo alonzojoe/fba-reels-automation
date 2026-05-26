@@ -101,7 +101,12 @@ The expected schema is:
 }
 ```
 
-`tips` must contain exactly 3 items. Each section gets a `queries` list (2–3 entries recommended) — the pipeline rotates through them as it cuts sub-segments, so more queries = more visual variety. Older scripts with a single `search_query` or `query` string still load (treated as a one-element list) but new scripts should use `queries`.
+> **Schema rule:** `tips` must contain **exactly 3 items** — the validator
+> rejects anything else with `ERROR: invalid script (...): 'tips' must contain
+> exactly 3 items`. The whole pipeline (cut planner, caption timing, transition
+> variety) is tuned around this shape.
+
+Each section gets a `queries` list (2–3 entries recommended) — the pipeline rotates through them as it cuts sub-segments, so more queries = more visual variety. Older scripts with a single `search_query` or `query` string still load (treated as a one-element list) but new scripts should use `queries`.
 
 For symptoms or body-related content, write queries that **show body parts** — viewers self-identify and retention shoots up. Examples in [prompts/script-generation.md](prompts/script-generation.md).
 
