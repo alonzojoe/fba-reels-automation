@@ -263,7 +263,7 @@ Phrase grouping in [`pipeline/captions.py`](pipeline/captions.py) `group_words_i
 3. Word ending with `,` once `KARAOKE_MIN_WORDS_FOR_WEAK_BREAK` (3) is reached
 4. Speaker pause ≥ `KARAOKE_BIG_GAP_S` (0.50 s) once min-words is reached
 
-Each phrase emits a shadow + main Dialogue pair with libass karaoke (`\k`) tags driving the per-word color flip. PrimaryColour = brand color (highlighted), SecondaryColour = white (unspoken).
+Each phrase emits a shadow + main Dialogue pair with libass karaoke (`\k`) tags driving the per-word color flip. `PrimaryColour` = brand color (the word that's currently being spoken or has been spoken), `SecondaryColour` = white (words still upcoming in the phrase). `\k<centiseconds>` per word is what tells libass when to swap them.
 
 **Inspect the style in isolation:**
 
