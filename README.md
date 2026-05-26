@@ -300,7 +300,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the commit-message conventions (conve
 ## Project layout
 
 ```
-reel.py                          # CLI entry, orchestrates the 5 render stages
+reel.py                          # CLI entry, orchestrates the 6 render stages
 pipeline/
   script.py                      # Load + validate the script JSON
   tts.py                         # ElevenLabs API     → per-segment MP3 → 16kHz mono voice.wav
