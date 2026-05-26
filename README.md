@@ -4,6 +4,20 @@ Render vertical 1080×1920 Facebook Reels from a JSON script. The pipeline makes
 **no LLM API calls** — you generate the script separately (in Claude Code,
 ChatGPT, locally, or by hand) and pass it in via `--script`.
 
+## Table of contents
+
+- [What it does](#what-it-does)
+- [Setup](#setup)
+- [Workflow](#workflow)
+- [Voice (brand-locked)](#voice-brand-locked)
+- [The 3-second rule](#the-3-second-rule-and-the-hook-gets-it-harder)
+- [Caption style](#caption-style)
+- [Background music](#background-music)
+- [Project layout](#project-layout)
+- [Output spec](#output-spec)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+
 ```bash
 # Step A: generate a script (one time, per topic)
 #   → copy prompts/script-generation.md into Claude Code
