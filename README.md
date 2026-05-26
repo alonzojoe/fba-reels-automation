@@ -272,8 +272,8 @@ Example CTAs from the prompt:
 - `"Pick just one and start today, then follow for more daily gut health hacks."`
 
 ```bash
-python reel.py --script script.json                                  # default
-python reel.py --script script.json --text-color "#FF3366"           # pink/red captions
+python reel.py --script sore_throat                                  # default green captions
+python reel.py --script sore_throat --text-color "#FF3366"           # pink/red captions
 ```
 
 **Changing the font:** default is `Arial Black` (always on macOS). To use Montserrat Black or Anton, install the font system-wide and edit the `fontname` default in `pipeline/captions.py`.
