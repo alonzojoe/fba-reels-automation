@@ -115,6 +115,8 @@ Each section gets a `queries` list (2–3 entries recommended) — the pipeline 
 
 For symptoms or body-related content, write queries that **show body parts** — viewers self-identify and retention shoots up. Examples in [prompts/script-generation.md](prompts/script-generation.md).
 
+> **Tip:** Always run `--dry-run` first on a new script. It validates the JSON shape and previews which Pexels clips each query will pull, **without** spending ElevenLabs credits or downloading footage. If a query returns garbage results, you'll see it in seconds.
+
 ### Step B — Render
 
 `--script` accepts a topic name, filename, or full path — all of these resolve identically:
