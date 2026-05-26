@@ -229,7 +229,7 @@ Reels retention drops sharply when a single visual stays on screen for more than
 - **Each cut uses a different Pexels clip**, deduped across the whole reel — no two cuts share a video ID. If Pexels has fewer unique clips than needed for a query, the pipeline reuses with adjacency relaxed (never two same clips in a row) and logs `[footage] WARN`.
 - **Section queries rotate.** Each section in `script.json` has a `queries` list (2–3 entries); sub-segment N within a section searches `queries[N % len]`. Three queries × three sub-segments = three visually different shots per section.
 
-A typical 35-second reel ends up with **~13–15 clip cuts**, with ~3 of them in the first 5 seconds.
+A typical 45-second reel ends up with **~17–20 clip cuts**, with ~3 of them in the first 5 seconds.
 
 ## Caption style
 
