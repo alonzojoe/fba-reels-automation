@@ -308,11 +308,13 @@ pipeline/
   footage.py                     # Plan cuts + parallel Pexels download + video_id cache
   captions.py                    # word timestamps    → captions.ass (yellow body, green outro)
   assemble.py                    # ffmpeg: process_clip, xfade chain, concat, mux, burn
+contents/                        # All reel scripts (sample_<topic>.json) live here
 prompts/
   script-generation.md           # Reusable LLM prompt for Step A
 bg-music/                        # Drop royalty-free MP3s/WAVs here
+out/<topic>/final.mp4            # Rendered output, one folder per topic
 requirements.txt
-docs/superpowers/specs/          # design doc
+docs/superpowers/specs/          # Design docs
 ```
 
 Each run creates `work/<timestamp>/` for intermediates (`script.json`, `voice.wav`,
