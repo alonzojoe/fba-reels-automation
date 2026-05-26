@@ -1,8 +1,10 @@
 # Faceless Reel Pipeline
 
-Render vertical 1080×1920 Facebook Reels from a JSON script. The pipeline makes
-**no LLM API calls** — you generate the script separately (in Claude Code,
-ChatGPT, locally, or by hand) and pass it in via `--script`.
+Render vertical 1080×1920 short-form video from a JSON script — ready to upload
+to Facebook Reels, Instagram Reels, TikTok, or YouTube Shorts (they all share
+the 9:16 / 1080×1920 spec). The pipeline makes **no LLM API calls** — you
+generate the script separately (in Claude Code, ChatGPT, locally, or by hand)
+and pass it in via `--script`.
 
 ## Table of contents
 
