@@ -323,8 +323,8 @@ same script skips the network.
 ## Output spec
 
 - 1080×1920 MP4 (H.264, CRF 23, `-preset medium`, yuv420p), AAC audio (192 k), `+faststart` for streaming.
-- 30–45 s of voiceover (CTA includes the follow-call — no separate outro segment).
-- ~12–14 clip cuts in a typical reel for high visual energy.
+- ~40–60 s of voiceover (CTA includes the follow-call — no separate outro segment).
+- ~15–20 clip cuts in a typical reel for high visual energy.
 - Ready to upload directly to Facebook Reels with no further editing.
 
 ## Troubleshooting
