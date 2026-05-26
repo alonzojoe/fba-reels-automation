@@ -42,7 +42,7 @@ python3 reel.py --list
 5. **Captions** — karaoke style. Phrases (~5–7 words) appear in white; each word flips to the brand color (default green `#00FF66`) when it's spoken and stays highlighted. Gaussian-blurred drop shadow + 2 px outline. See [Caption style](#caption-style).
 6. **Background music** — auto-picked at random from [`bg-music/`](#background-music), looped, mixed at ~-22 dB, faded out over the last 1.5 s.
 7. **Outro / follow-call** — there's no separate outro segment any more. The follow-call (e.g. `"...and follow for more wake-up tips that actually work."`) is woven into the CTA text by the script generator, so the voice doesn't seam at the very end of the reel and the body captions sync the closing words naturally.
-8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, draws the outro gradient, burns captions, mixes audio, encodes H.264 + AAC.
+8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, burns captions, mixes audio, encodes H.264 + AAC.
 
 ## Setup
 
