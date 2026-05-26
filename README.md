@@ -50,6 +50,8 @@ python3 reel.py --script sore_throat
 
 The default Homebrew `ffmpeg` formula does **not** include libass. Use `ffmpeg-full` instead (or any build that includes the `subtitles` filter — verify with `ffmpeg -filters | grep subtitles`).
 
+> **Linux:** `apt install ffmpeg` and `dnf install ffmpeg` both ship libass by default, so the standard package is fine. Skip the `ffmpeg-full` step and the `FFMPEG_BIN` env var below.
+
 Python 3.14 currently lacks an `onnxruntime` wheel (a transitive dep of `faster-whisper`), so this project uses Python 3.12.
 
 ```bash
