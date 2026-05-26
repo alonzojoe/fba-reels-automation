@@ -330,9 +330,14 @@ docs/superpowers/specs/          # Design docs
 ```
 
 Each run creates `work/<timestamp>/` for intermediates (`script.json`, `voice.wav`,
-`words.json`, `captions.ass`, per-segment MP4s). The Pexels clip cache lives at
-`work/.clip_cache/{video_id}.mp4` and **persists across runs** so re-rendering the
-same script skips the network.
+`words.json`, `captions.ass`, per-segment MP4s). On a successful render the
+`work/<timestamp>/` folder is deleted automatically — pass `--keep-work` to
+preserve it (useful when debugging caption sync or ffmpeg failures).
+
+The Pexels clip cache lives at `work/.clip_cache/{video_id}.mp4` and **persists
+across runs** — so re-rendering the same script (or any script that reuses a
+video_id) skips the download entirely. This is also why iterating on a script
+gets faster after the first render: once a clip's downloaded, it stays.
 
 ## Output spec
 
