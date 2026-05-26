@@ -306,7 +306,7 @@ pipeline/
   tts.py                         # ElevenLabs API     → per-segment MP3 → 16kHz mono voice.wav
   transcribe.py                  # voice.wav          → faster-whisper → word timestamps
   footage.py                     # Plan cuts + parallel Pexels download + video_id cache
-  captions.py                    # word timestamps    → captions.ass (yellow body, green outro)
+  captions.py                    # word timestamps    → captions.ass (karaoke phrase highlight)
   assemble.py                    # ffmpeg: process_clip, xfade chain, concat, mux, burn
 contents/                        # All reel scripts (sample_<topic>.json) live here
 prompts/
