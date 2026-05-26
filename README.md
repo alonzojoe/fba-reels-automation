@@ -345,3 +345,4 @@ same script skips the network.
 - **`ELEVENLABS_API_KEY not set`** — fill `.env`. Free key at https://elevenlabs.io/app/settings/api-keys.
 - **`Aborted (insufficient credits...)`** — your free-tier balance is below the reel's estimated character count. Wait for the monthly reset or upgrade.
 - **`OMP: Error #15` / segfault on second run** — OpenMP double-init when faster-whisper (`ctranslate2`) coexists with another libiomp5-linked library. The pipeline already sets `KMP_DUPLICATE_LIB_OK=TRUE` and `OMP_NUM_THREADS=1` at the top of `reel.py`. If you call into the pipeline modules from your own script, export those two env vars before importing.
+- **First run hangs at "[3/6] Extracting word timestamps"** — faster-whisper downloads the `base` model (~140 MB) on first use; it's cached at `~/.cache/huggingface/` for every run after. If it stalls, check your network or pre-fetch with `python -c "from faster_whisper import WhisperModel; WhisperModel('base')"`.
