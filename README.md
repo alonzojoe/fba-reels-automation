@@ -1,20 +1,36 @@
 # Faceless Reel Pipeline
 
-Render vertical 1080×1920 Facebook Reels from a JSON script. The pipeline makes
-**no LLM API calls** — you generate the script separately (in Claude Code,
-ChatGPT, locally, or by hand) and pass it in via `--script`.
+Render vertical 1080×1920 short-form video from a JSON script — ready to upload
+to Facebook Reels, Instagram Reels, TikTok, or YouTube Shorts (they all share
+the 9:16 / 1080×1920 spec). The pipeline makes **no LLM API calls** — you
+generate the script separately (in Claude Code, ChatGPT, locally, or by hand)
+and pass it in via `--script`.
+
+## Table of contents
+
+- [What it does](#what-it-does)
+- [Setup](#setup)
+- [Workflow](#workflow)
+- [Voice (brand-locked)](#voice-brand-locked)
+- [The 3-second rule](#the-3-second-rule-and-the-hook-gets-it-harder)
+- [Caption style](#caption-style)
+- [Background music](#background-music)
+- [Project layout](#project-layout)
+- [Output spec](#output-spec)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
 
 ```bash
 # Step A: generate a script (one time, per topic)
 #   → copy prompts/script-generation.md into Claude Code
 #   → append your topic, save the output JSON to contents/sample_<topic>.json
 
-# Step B: render the reel — bare topic names resolve against contents/
-python3 reel.py --script sore_throat
-# → out/sore_throat/final.mp4 (30–45 s voiceover, ready for Facebook Reels)
-
-# Or list everything currently in contents/
+# Step B: list available topics
 python3 reel.py --list
+
+# Step C: render any topic — bare names resolve against contents/
+python3 reel.py --script sore_throat
+# → out/sore_throat/final.mp4 (~40–60 s voiceover, ready to upload)
 ```
 
 ## What it does
@@ -26,13 +42,15 @@ python3 reel.py --list
 5. **Captions** — karaoke style. Phrases (~5–7 words) appear in white; each word flips to the brand color (default green `#00FF66`) when it's spoken and stays highlighted. Gaussian-blurred drop shadow + 2 px outline. See [Caption style](#caption-style).
 6. **Background music** — auto-picked at random from [`bg-music/`](#background-music), looped, mixed at ~-22 dB, faded out over the last 1.5 s.
 7. **Outro / follow-call** — there's no separate outro segment any more. The follow-call (e.g. `"...and follow for more wake-up tips that actually work."`) is woven into the CTA text by the script generator, so the voice doesn't seam at the very end of the reel and the body captions sync the closing words naturally.
-8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, draws the outro gradient, burns captions, mixes audio, encodes H.264 + AAC.
+8. **Assemble** — `ffmpeg` trims/scales clips (blurred-bg fallback for non-portrait), xfades within sections, concats sections, burns captions, mixes audio, encodes H.264 + AAC.
 
 ## Setup
 
 **Prerequisites:** macOS or Linux, an ffmpeg build with **libass** (for caption burn-in), Python 3.12.
 
 The default Homebrew `ffmpeg` formula does **not** include libass. Use `ffmpeg-full` instead (or any build that includes the `subtitles` filter — verify with `ffmpeg -filters | grep subtitles`).
+
+> **Linux:** `apt install ffmpeg` and `dnf install ffmpeg` both ship libass by default, so the standard package is fine. Skip the `ffmpeg-full` step and the `FFMPEG_BIN` env var below.
 
 Python 3.14 currently lacks an `onnxruntime` wheel (a transitive dep of `faster-whisper`), so this project uses Python 3.12.
 
@@ -58,6 +76,9 @@ cp .env.example .env
 #   ELEVENLABS_API_KEY=...    (https://elevenlabs.io/app/settings/api-keys)
 #   FFMPEG_BIN=/usr/local/opt/ffmpeg-full/bin/ffmpeg     (only if not on PATH)
 #   FFPROBE_BIN=/usr/local/opt/ffmpeg-full/bin/ffprobe   (only if not on PATH)
+
+# 5. Verify the install
+.venv/bin/python reel.py --list    # should print the bundled sample topics
 ```
 
 **ElevenLabs free tier** = 10,000 characters/month, enough for roughly 25–30
@@ -85,9 +106,16 @@ The expected schema is:
 }
 ```
 
-`tips` must contain exactly 3 items. Each section gets a `queries` list (2–3 entries recommended) — the pipeline rotates through them as it cuts sub-segments, so more queries = more visual variety. Older scripts with a single `search_query` or `query` string still load (treated as a one-element list) but new scripts should use `queries`.
+> **Schema rule:** `tips` must contain **exactly 3 items** — the validator
+> rejects anything else with `ERROR: invalid script (...): 'tips' must contain
+> exactly 3 items`. The whole pipeline (cut planner, caption timing, transition
+> variety) is tuned around this shape.
+
+Each section gets a `queries` list (2–3 entries recommended) — the pipeline rotates through them as it cuts sub-segments, so more queries = more visual variety. Older scripts with a single `search_query` or `query` string still load (treated as a one-element list) but new scripts should use `queries`.
 
 For symptoms or body-related content, write queries that **show body parts** — viewers self-identify and retention shoots up. Examples in [prompts/script-generation.md](prompts/script-generation.md).
+
+> **Tip:** Always run `--dry-run` first on a new script. It validates the JSON shape and previews which Pexels clips each query will pull, **without** spending ElevenLabs credits or downloading footage. If a query returns garbage results, you'll see it in seconds.
 
 ### Step B — Render
 
@@ -167,13 +195,13 @@ six entries marked "Free" above are premade voices and work on every tier.
 
 ```bash
 # Default (bill)
-python reel.py --script script.json
+python reel.py --script sore_throat
 
 # Switch voice by friendly name
-python reel.py --script script.json --voice callum
+python reel.py --script sore_throat --voice callum
 
 # Or by raw voice_id
-python reel.py --script script.json --voice ErXwobaYiN019PkySvjV
+python reel.py --script sore_throat --voice ErXwobaYiN019PkySvjV
 ```
 
 Voice and pacing knobs live in [`pipeline/tts.py`](pipeline/tts.py):
@@ -213,7 +241,7 @@ Reels retention drops sharply when a single visual stays on screen for more than
 - **Each cut uses a different Pexels clip**, deduped across the whole reel — no two cuts share a video ID. If Pexels has fewer unique clips than needed for a query, the pipeline reuses with adjacency relaxed (never two same clips in a row) and logs `[footage] WARN`.
 - **Section queries rotate.** Each section in `script.json` has a `queries` list (2–3 entries); sub-segment N within a section searches `queries[N % len]`. Three queries × three sub-segments = three visually different shots per section.
 
-A typical 35-second reel ends up with **~13–15 clip cuts**, with ~3 of them in the first 5 seconds.
+A typical 45-second reel ends up with **~17–20 clip cuts**, with ~3 of them in the first 5 seconds.
 
 ## Caption style
 
@@ -235,7 +263,7 @@ Phrase grouping in [`pipeline/captions.py`](pipeline/captions.py) `group_words_i
 3. Word ending with `,` once `KARAOKE_MIN_WORDS_FOR_WEAK_BREAK` (3) is reached
 4. Speaker pause ≥ `KARAOKE_BIG_GAP_S` (0.50 s) once min-words is reached
 
-Each phrase emits a shadow + main Dialogue pair with libass karaoke (`\k`) tags driving the per-word color flip. PrimaryColour = brand color (highlighted), SecondaryColour = white (unspoken).
+Each phrase emits a shadow + main Dialogue pair with libass karaoke (`\k`) tags driving the per-word color flip. `PrimaryColour` = brand color (the word that's currently being spoken or has been spoken), `SecondaryColour` = white (words still upcoming in the phrase). `\k<centiseconds>` per word is what tells libass when to swap them.
 
 **Inspect the style in isolation:**
 
@@ -256,8 +284,8 @@ Example CTAs from the prompt:
 - `"Pick just one and start today, then follow for more daily gut health hacks."`
 
 ```bash
-python reel.py --script script.json                                  # default
-python reel.py --script script.json --text-color "#FF3366"           # pink/red captions
+python reel.py --script sore_throat                                  # default green captions
+python reel.py --script sore_throat --text-color "#FF3366"           # pink/red captions
 ```
 
 **Changing the font:** default is `Arial Black` (always on macOS). To use Montserrat Black or Anton, install the font system-wide and edit the `fontname` default in `pipeline/captions.py`.
@@ -284,32 +312,40 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the commit-message conventions (conve
 ## Project layout
 
 ```
-reel.py                          # CLI entry, orchestrates the 5 render stages
+reel.py                          # CLI entry, orchestrates the 6 render stages
 pipeline/
   script.py                      # Load + validate the script JSON
   tts.py                         # ElevenLabs API     → per-segment MP3 → 16kHz mono voice.wav
   transcribe.py                  # voice.wav          → faster-whisper → word timestamps
   footage.py                     # Plan cuts + parallel Pexels download + video_id cache
-  captions.py                    # word timestamps    → captions.ass (yellow body, green outro)
+  captions.py                    # word timestamps    → captions.ass (karaoke phrase highlight)
   assemble.py                    # ffmpeg: process_clip, xfade chain, concat, mux, burn
+contents/                        # All reel scripts (sample_<topic>.json) live here
 prompts/
   script-generation.md           # Reusable LLM prompt for Step A
 bg-music/                        # Drop royalty-free MP3s/WAVs here
+out/<topic>/final.mp4            # Rendered output, one folder per topic
 requirements.txt
-docs/superpowers/specs/          # design doc
+docs/superpowers/specs/          # Design docs
 ```
 
 Each run creates `work/<timestamp>/` for intermediates (`script.json`, `voice.wav`,
-`words.json`, `captions.ass`, per-segment MP4s). The Pexels clip cache lives at
-`work/.clip_cache/{video_id}.mp4` and **persists across runs** so re-rendering the
-same script skips the network.
+`words.json`, `captions.ass`, per-segment MP4s). On a successful render the
+`work/<timestamp>/` folder is deleted automatically — pass `--keep-work` to
+preserve it (useful when debugging caption sync or ffmpeg failures).
+
+The Pexels clip cache lives at `work/.clip_cache/{video_id}.mp4` and **persists
+across runs** — so re-rendering the same script (or any script that reuses a
+video_id) skips the download entirely. This is also why iterating on a script
+gets faster after the first render: once a clip's downloaded, it stays.
 
 ## Output spec
 
 - 1080×1920 MP4 (H.264, CRF 23, `-preset medium`, yuv420p), AAC audio (192 k), `+faststart` for streaming.
-- 30–45 s of voiceover (CTA includes the follow-call — no separate outro segment).
-- ~12–14 clip cuts in a typical reel for high visual energy.
+- ~40–60 s of voiceover (CTA includes the follow-call — no separate outro segment).
+- ~15–20 clip cuts in a typical reel for high visual energy.
 - Ready to upload directly to Facebook Reels with no further editing.
+- **End-to-end render time:** ~2–3 minutes on an M-series Mac (TTS API ~30 s, Pexels downloads ~20 s in parallel, whisper ~20 s, ffmpeg assemble ~60–90 s). Cached Pexels clips skip the download phase entirely.
 
 ## Troubleshooting
 
@@ -318,6 +354,9 @@ same script skips the network.
 - **`PEXELS_API_KEY not set`** — fill `.env`.
 - **Pexels `0 results`** — query in your script is too obscure. Edit `script.json` to broaden the `search_query`.
 - **`[footage] WARN: limited Pexels variety`** — Pexels returned fewer unique videos than needed for that query. The reel still renders but reuses clips (never adjacent). Edit the query in `script.json` for more variety.
+- **A specific Pexels clip keeps showing up but is off-brand** — every chosen clip is logged with its URL via `[footage] picked section[X]  video_id=…  https://…`. Drop the offending `video_id` into the `BLOCKED_VIDEO_IDS` set at the top of [`pipeline/footage.py`](pipeline/footage.py); it will be filtered at the Pexels search chokepoint on the next render.
 - **`Filter not found` / caption text missing** — your ffmpeg lacks libass; install `ffmpeg-full` (see [Setup](#setup)).
 - **`ELEVENLABS_API_KEY not set`** — fill `.env`. Free key at https://elevenlabs.io/app/settings/api-keys.
 - **`Aborted (insufficient credits...)`** — your free-tier balance is below the reel's estimated character count. Wait for the monthly reset or upgrade.
+- **`OMP: Error #15` / segfault on second run** — OpenMP double-init when faster-whisper (`ctranslate2`) coexists with another libiomp5-linked library. The pipeline already sets `KMP_DUPLICATE_LIB_OK=TRUE` and `OMP_NUM_THREADS=1` at the top of `reel.py`. If you call into the pipeline modules from your own script, export those two env vars before importing.
+- **First run hangs at "[3/6] Extracting word timestamps"** — faster-whisper downloads the `base` model (~140 MB) on first use; it's cached at `~/.cache/huggingface/` for every run after. If it stalls, check your network or pre-fetch with `python -c "from faster_whisper import WhisperModel; WhisperModel('base')"`.

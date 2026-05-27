@@ -1,0 +1,47 @@
+{
+  "hook": {
+    "text": "Breakfast is the most important meal? That's a marketing lie. Here's the truth.",
+    "queries": [
+      "person looking at breakfast plate confused",
+      "cereal box vintage advertisement closeup",
+      "empty plate morning kitchen sunlight"
+    ]
+  },
+  "tips": [
+    {
+      "text": "First, the breakfast rule was invented by cereal companies in the 1940s. Kellogg's wanted to sell more boxes. So they paid scientists to call breakfast essential. It was never about your health.",
+      "queries": [
+        "vintage cereal box advertisement old style",
+        "old magazine ad breakfast cereal retro",
+        "kelloggs corn flakes vintage box closeup",
+        "1940s family eating breakfast vintage"
+      ]
+    },
+    {
+      "text": "Second, your body burns fat in the morning. After eight hours of fasting, your insulin is low. Eating breakfast spikes it. Fat-burning stops immediately. So you store more fat all day.",
+      "queries": [
+        "person waking up stretching morning",
+        "fasting clock 16 hours intermittent macro",
+        "fat burning concept body silhouette",
+        "morning sun rising peaceful nature"
+      ]
+    },
+    {
+      "text": "Third, skipping breakfast improves focus. Without a heavy meal, your brain stays sharp. Studies show people who skip breakfast think faster and concentrate longer than those who eat early.",
+      "queries": [
+        "person focused working laptop sharp",
+        "brain concept lightbulb productivity",
+        "professional concentrated work morning",
+        "person reading book coffee only"
+      ]
+    }
+  ],
+  "cta": {
+    "text": "Try skipping breakfast for one week. Just water and black coffee. See how you feel. Follow for more health myths busted.",
+    "queries": [
+      "person feeling energized clear minded smile",
+      "person scrolling phone bed cozy closeup",
+      "thumb scrolling phone screen closeup macro"
+    ]
+  }
+}
